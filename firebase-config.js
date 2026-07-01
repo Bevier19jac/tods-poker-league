@@ -26,6 +26,8 @@ const firebaseConfig = {
 try {
   firebase.initializeApp(firebaseConfig);
   window._firebaseReady = true;
+  window._firebaseAuth = firebase.auth();
 } catch(e) {
   window._firebaseReady = false;
+  window._firebaseAuth = null;
 }
