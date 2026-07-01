@@ -311,7 +311,6 @@
         <div class="rsvp-title">♣ Who's Playing — Event 11</div>
         <div class="rsvp-sub">Thursday, July 2nd at 8:00 PM · Select your name and set your status so Tod can plan tables & chips</div>
       </div>
-      <button onclick="resetAllRsvp()" style="background:transparent;border:1px solid rgba(239,68,68,0.35);color:#f87171;font-size:0.72rem;padding:0.4rem 0.9rem;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0.03em" title="Clear all RSVP responses">↺ Reset All</button>
     </div>
 
     <div class="name-picker-bar">
@@ -596,8 +595,28 @@ function buildRsvpGrid(){
 loadLocal();
 buildRsvpGrid();
 try{
+  // Live RSVP sync
   firebase.database().ref(fbKey).on('value',function(snap){
     fbStatuses=snap.val()||{};fbLive=true;buildRsvpGrid();
+  });
+  // Live league data sync — admin changes update the public dashboard instantly
+  firebase.database().ref('league').on('value',function(snap){
+    var d=snap.val();
+    if(!d)return;
+    if(d.nextGame)  { L.nextGame=d.nextGame; var ng=L.nextGame; var fbKey2='rsvp_'+ng.date.replace(/-/g,'_'); }
+    if(d.standings) { L.standings=d.standings; buildRsvpGrid(); }
+    if(d.lastGame)  { L.lastGame=d.lastGame; }
+    if(d.announcements){ L.announcements=d.announcements; }
+    // Refresh announcement banner
+    var annDiv=document.getElementById('announcements');
+    if(annDiv&&d.announcements){
+      annDiv.innerHTML='';
+      (d.announcements||[]).filter(function(a){return a.active;}).forEach(function(a){
+        var b=document.createElement('div');b.className='ann-bar ann-'+(a.type||'info');
+        b.innerHTML='<span class="ann-icon">'+(a.icon||'📢')+'</span><span>'+a.text+'</span>';
+        annDiv.appendChild(b);
+      });
+    }
   });
 }catch(e){console.info('Local RSVP mode');}
 </script>
