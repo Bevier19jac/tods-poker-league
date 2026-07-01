@@ -14,7 +14,7 @@ const LEAGUE = {
   // Set active:true to show a banner above the RSVP section
   // type options: "info" (blue) | "special" (gold) | "warning" (red)
   announcements: [
-    // { active: true, type: "special", icon: "🎁", text: "Toys for Tots drive — bring a new unwrapped toy to the next game night!" },
+    { active: true, type: "special", icon: "🃏", text: "Game Night is TOMORROW — Wednesday July 2nd at 8 PM at Tod's. RSVP below!" },
     // { active: true, type: "info",    icon: "📅", text: "Next game confirmed: July 2nd at 8 PM at Tod's" },
     // { active: true, type: "warning", icon: "⚠",  text: "Location change for next event — contact Tod for details" },
   ],
@@ -106,14 +106,32 @@ const LEAGUE = {
   records: {
     highHandAllTime: { player: "Tod Ellison", hand: "Quad Kings - Ace Kicker", season: 20, date: "" },
     highHandSeason:  { player: "Tod Ellison", hand: "Quad Kings - Ace Kicker", season: 20, date: "" },
-    mostWins:        { player: "Tod Ellison", count: 15, note: "Career wins all-time" },
+    mostWins:        { player: "Tod Ellison", count: 15, note: "Career event wins all-time" },
     mostSeasons:     { player: "Tod Ellison", count: 20, note: "All 20 seasons" },
+    mostChampionships: { player: "JH Hooper & Tod Ellison", count: 2, note: "2x APL Champions each" },
   },
 
+  // APL Season Champions — JH Hooper and Tod Ellison are each 2x champions
   champions: [
-    { season: 19, year: 2025, champion: "Charlie Grant", note: "Season 19 Champion" },
-    { season: 18, year: 2024, champion: "- unknown -",   note: "" },
-    { season: 17, year: 2024, champion: "- unknown -",   note: "" },
+    { season: 19, year: 2025, champion: "Charlie Grant", note: "First season, first championship" },
+    { season: 18, year: 2024, champion: "Eric C",        note: "" },
+    { season: 17, year: 2023, champion: "Tod",           note: "" },
+    { season: 16, year: 2022, champion: "Chris P",       note: "" },
+    { season: 15, year: 2021, champion: "JH",            note: "" },
+    { season: 14, year: 2020, champion: "Chris F",       note: "" },
+    { season: 13, year: 2019, champion: "Phil",          note: "" },
+    { season: 12, year: 2018, champion: "Tom",           note: "" },
+    { season: 11, year: 2017, champion: "Vince",         note: "" },
+    { season: 10, year: 2016, champion: "Jeremy",        note: "" },
+    { season:  9, year: 2015, champion: "Karey",         note: "" },
+    { season:  8, year: 2014, champion: "Tod",           note: "" },
+    { season:  7, year: 2013, champion: "JH",            note: "" },
+    { season:  6, year: 2012, champion: "Buddy",         note: "" },
+    { season:  5, year: 2011, champion: "Al",            note: "" },
+    { season:  4, year: 2010, champion: "Derek",         note: "" },
+    { season:  3, year: 2009, champion: "Sal",           note: "" },
+    { season:  2, year: 2008, champion: "Steve",         note: "" },
+    { season:  1, year: 2007, champion: "Steve",         note: "Inaugural season" },
   ],
 
   history: [],

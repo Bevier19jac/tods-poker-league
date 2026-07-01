@@ -14,13 +14,13 @@
  */
 
 const firebaseConfig = {
-  apiKey:            "PASTE_YOUR_API_KEY_HERE",
-  authDomain:        "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL:       "https://PASTE_YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-  projectId:         "PASTE_YOUR_PROJECT_ID",
-  storageBucket:     "PASTE_YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "PASTE_YOUR_SENDER_ID",
-  appId:             "PASTE_YOUR_APP_ID"
+  apiKey:            "AIzaSyAMOWwnAPG_DDPJYcvFd5W_cypgmrhAoJg",
+  authDomain:        "tod-admin-page.firebaseapp.com",
+  databaseURL:       "https://tod-admin-page-default-rtdb.firebaseio.com",
+  projectId:         "tod-admin-page",
+  storageBucket:     "tod-admin-page.firebasestorage.app",
+  messagingSenderId: "788443842956",
+  appId:             "1:788443842956:web:93459f3cdf80e345236ea9"
 };
 
 try {
