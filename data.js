@@ -77,7 +77,7 @@ const LEAGUE = {
     { name: "Chris F", fullName: "Chris Frady",       events: 7,  points: 31600, wins: 0, cashes: 3, avgPlace: 7.0,  avatar: "avatars/chris_f.png" },
     { name: "Steve",   fullName: "Steve Mills",       events: 7,  points: 29700, wins: 1, cashes: 3, avgPlace: 6.7  },
     { name: "Jacob",   fullName: "Jacob Bevier",      events: 8,  points: 28400, wins: 0, cashes: 2, avgPlace: 8.8,  avatar: "avatars/jacob.png"   },
-    { name: "Michael", fullName: "Michael Loridas",   events: 5,  points: 27900, wins: 0, cashes: 4, avgPlace: 9.0,  avatar: "avatars/michael.png" },
+    { name: "Michael", fullName: "Michael",            events: 5,  points: 27900, wins: 0, cashes: 4, avgPlace: 9.0,  avatar: "avatars/michael.png" },
     { name: "Jay",     fullName: "Jay Rose",          events: 8,  points: 26800, wins: 1, cashes: 2, avgPlace: 11.0, avatar: "avatars/jay.png"     },
     { name: "Steele",  fullName: "Steele Persons",    events: 9,  points: 26800, wins: 0, cashes: 1, avgPlace: 11.2 },
     { name: "Nate",    fullName: "Nate Woods",        events: 8,  points: 25800, wins: 0, cashes: 1, avgPlace: 10.6, avatar: "avatars/nate.png"    },
@@ -101,6 +101,7 @@ const LEAGUE = {
     { name: "James",   fullName: "James",             events: 1,  points:  1800, wins: 0, cashes: 0, avgPlace: 18.0 },
     { name: "Darin",   fullName: "Darin Brewer",      events: 1,  points:  1500, wins: 0, cashes: 0, avgPlace: 16.0 },
     { name: "Jeff",    fullName: "Jeff Mennicke",     events: 1,  points:  1200, wins: 0, cashes: 0, avgPlace: 20.0 },
+    { name: "Eli",     fullName: "Eli Robbins",       events: 0,  points:     0, wins: 0, cashes: 0, avgPlace: 0    },
   ],
 
   records: {
