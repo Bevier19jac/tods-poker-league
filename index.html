@@ -676,6 +676,8 @@ function updateDonut(inC,mayC,outC,total){
 }
 
 // ── BUILD RSVP GRID ──
+
+// ── BUILD RSVP GRID ──
 function buildRsvpGrid(){
   var grid=document.getElementById('rsvp-grid');if(!grid)return;
   var total=L.standings.length,inC=0,mayC=0,outC=0;
@@ -684,29 +686,24 @@ function buildRsvpGrid(){
     if(s==='in')inC++;else if(s==='maybe')mayC++;else if(s==='out')outC++;
   });
   updateDonut(inC,mayC,outC,total);
-
-  // Build chip color map (standings rank = chip color, stays consistent across pages)
   var colorIdx={};
   L.standings.forEach(function(p,i){colorIdx[p.name]=i;});
-
-  // Display alphabetically so players can find themselves quickly
   var sorted=L.standings.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-
   var html='';
   sorted.forEach(function(p){
-    var i=colorIdx[p.name]; // original standings index for chip color
+    var i=colorIdx[p.name];
     var s=fbStatuses[p.name]||'';
     var isMe=(p.name===myName);
     var sClass=s?' status-'+s:'';var mClass=isMe?' is-me':'';
     var badge='';
-    if(s==='in')badge='<span class="rc-badge sin">✓ In</span>';
+    if(s==='in')badge='<span class="rc-badge sin">&#10003; In</span>';
     else if(s==='maybe')badge='<span class="rc-badge smb">? Maybe</span>';
-    else if(s==='out')badge='<span class="rc-badge sout">✗ Out</span>';
-    else badge='<span class="rc-badge stbd">— TBD</span>';
+    else if(s==='out')badge='<span class="rc-badge sout">&#10007; Out</span>';
+    else badge='<span class="rc-badge stbd">&#8212; TBD</span>';
     var btns='';
     if(isMe){
       var ia=s==='in'?' class="a-in"':'';var ma=s==='maybe'?' class="a-mb"':'';var oa=s==='out'?' class="a-out"':'';
-      btns='<div class="rsvp-btns"><button'+ia+' onclick="setStatus(\'in\')">✓ In</button><button'+ma+' onclick="setStatus(\'maybe\')">? Maybe</button><button'+oa+' onclick="setStatus(\'out\')">✗ Out</button></div>';
+      btns='<div class="rsvp-btns"><button'+ia+' onclick="setStatus(\'in\')">&#10003; In</button><button'+ma+' onclick="setStatus(\'maybe\')">? Maybe</button><button'+oa+' onclick="setStatus(\'out\')">&#10007; Out</button></div>';
     }
     html+='<div class="rsvp-card'+sClass+mClass+'">'+playerChip(p,i,68)+'<div class="rc-name">'+p.name+'</div>'+badge+btns+'</div>';
   });
@@ -718,7 +715,7 @@ function buildRsvpGrid(){
   var div=document.getElementById('announcements');if(!div)return;
   (L.announcements||[]).filter(function(a){return a.active;}).forEach(function(a){
     var b=document.createElement('div');b.className='ann-bar ann-'+a.type;
-    b.innerHTML='<span class="ann-icon">'+(a.icon||'📢')+'</span><span>'+a.text+'</span>';
+    b.innerHTML='<span class="ann-icon">'+(a.icon||'&#128226;')+'</span><span>'+a.text+'</span>';
     div.appendChild(b);
   });
 })();
@@ -728,5 +725,61 @@ function buildRsvpGrid(){
   var div=document.getElementById('statsInner');if(!div||!L.standings||!L.standings.length)return;
   var done=(L.schedule||[]).filter(function(e){return e.completed;}).length;
   var top=L.standings[0];
+  var totalCashes=L.standings.reduce(function(s,p){return s+(p.cashes||0);},0);
   div.innerHTML=
-    '<div class="sb hi"><div class="sb-val">'+top.points.toLocaleString()+'</div><div class="sb-lbl">Points Leader ('+top.name+')</d
+    '<div class="sb hi"><div class="sb-val">'+top.points.toLocaleString()+'</div><div class="sb-lbl">Points Leader ('+top.name+')</div></div>'+
+    '<div class="sb"><div class="sb-val">'+done+'</div><div class="sb-lbl">Events Played</div></div>'+
+    '<div class="sb"><div class="sb-val">'+L.standings.length+'</div><div class="sb-lbl">Players</div></div>'+
+    '<div class="sb"><div class="sb-val">'+totalCashes+'</div><div class="sb-lbl">Total Cashes</div></div>';
+})();
+
+// ── CHAT ──
+(function(){
+  var nameEl=document.getElementById('chatName');
+  if(nameEl){
+    try{var n=localStorage.getItem('tpl_chatname');if(n)nameEl.value=n;}catch(e){}
+    nameEl.addEventListener('change',function(){try{localStorage.setItem('tpl_chatname',nameEl.value);}catch(e){};});
+  }
+  var textEl=document.getElementById('chatText');
+  if(textEl){
+    textEl.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();window.sendChatMsg();}});
+  }
+  function renderMsg(data){
+    var box=document.getElementById('chatMessages');if(!box)return;
+    var empty=document.getElementById('chatEmpty');if(empty)empty.remove();
+    var d=new Date(data.ts);
+    var timeStr=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' · '+d.toLocaleDateString([],{month:'short',day:'numeric'});
+    var el=document.createElement('div');
+    el.className='chat-msg';
+    el.innerHTML='<div class="chat-msg-name">'+String(data.name).replace(/</g,'&lt;')+'</div>'+
+                 '<div class="chat-msg-text">'+String(data.text).replace(/</g,'&lt;')+'</div>'+
+                 '<div class="chat-msg-time">'+timeStr+'</div>';
+    box.appendChild(el);
+    box.scrollTop=box.scrollHeight;
+  }
+  if(window._firebaseReady){
+    try{
+      firebase.database().ref('chat').orderByChild('ts').limitToLast(100)
+        .on('child_added',function(snap){renderMsg(snap.val());},function(err){console.warn('Chat load error:',err.message);});
+    }catch(e){console.warn('Chat Firebase error:',e.message);}
+  }
+  window.sendChatMsg=function(){
+    var nameEl=document.getElementById('chatName');
+    var textEl=document.getElementById('chatText');
+    var name=(nameEl&&nameEl.value.trim())||'Anonymous';
+    var text=textEl&&textEl.value.trim();
+    if(!text)return;
+    try{localStorage.setItem('tpl_chatname',name);}catch(e){}
+    var msg={name:name,text:text,ts:Date.now()};
+    if(window._firebaseReady){
+      try{firebase.database().ref('chat').push(msg);if(textEl)textEl.value='';return;}
+      catch(e){console.warn('Chat send error:',e.message);}
+    }
+    renderMsg(msg);
+    if(textEl)textEl.value='';
+  };
+})();
+
+</script>
+</body>
+</html>
