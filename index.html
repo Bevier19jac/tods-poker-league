@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script src="data.js"></script>
+  <script src="player-videos.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
@@ -448,33 +449,6 @@
 </footer>
 
 <script>
-// ── PLAYER AVATAR VIDEOS ──
-var EMPTY_CHAIR='https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213835_09f67193-0851-4ebd-bc57-e5f5c59e9867.mp4';
-var PLAYER_VIDEOS={
-  'Tod':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214131_76168f74-3ec9-4a95-b136-7b1de80ef117.mp4',
-  'Guy':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_212235_e578a1a3-abc9-4e18-babc-94a10e6efa37.mp4',
-  'Vince':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_212238_aa049926-b836-4322-8fe2-707968e04c1b.mp4',
-  'Karey':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_212242_6e62b2f0-d880-4a36-a455-9b1da111fdf2.mp4',
-  'JH':     'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_212246_886335fe-1bd6-48bf-972a-a14a3667ed2f.mp4',
-  'Chris F':'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214136_75d9e811-bc73-465f-ac85-ba74f6694363.mp4',
-  'Jacob':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_212257_d1f64cfe-f0d3-4a68-8f0f-e437f07fc15b.mp4',
-  'Michael':'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_212659_fa9a9cd3-3edc-4786-b8fc-797261ccf325.mp4',
-  'Jay':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_212702_70786573-b9d0-4ff8-98ac-87dcbf60d3c9.mp4',
-  'Nate':   'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_212705_37b57be9-1aa1-4506-bb4d-fc05631da8f2.mp4',
-  'Chris P':'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_212708_195e6319-645b-42b5-98c6-d5c741f4155c.mp4',
-  'Philo':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213435_685160ae-b7ac-4f6b-b1a8-987141b9e61e.mp4',
-  'Tom':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_212714_5f1abf3f-a0c2-4dea-9b8c-31df7bd5d2fe.mp4',
-  'Charlie':'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213839_7a2e0087-39f0-414f-b421-8523693bb9b5.mp4',
-  'Eric':   'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213844_c4bc9712-ba93-414e-b241-c50b62ebc874.mp4',
-  'Toner':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213847_1bdb68c3-0a79-4f10-8644-f378bcc637a8.mp4',
-  'Brian':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213850_10e9bca0-11a2-44d6-a308-82267fb21319.mp4',
-  'Jake':   'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213853_11fd850c-570d-498f-9cb1-34df9eda41ba.mp4',
-  'Jeremy': 'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214545_a5687d86-a66b-4eec-a7a9-443ad75ea565.mp4',
-  'Sal':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214547_7927dcc1-f210-421b-b689-9b40ec1c5ead.mp4',
-  'Tim':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214550_ab3814b6-caf2-40be-8a23-eb0a97783ad6.mp4',
-  'Justin': 'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214553_3784f7f6-40c3-4eab-86b0-d1120f892d55.mp4'
-};
-
 var L=LEAGUE,ng=L.nextGame;
 
 // ── CHIP COLORS ──
@@ -493,7 +467,9 @@ function playerChip(p,i,size){
   var face=p.avatar
     ?'<img src="'+p.avatar+'" style="width:'+inner+'px;height:'+inner+'px;object-fit:cover;border-radius:50%;border:1.5px solid rgba(255,255,255,0.35)" alt="'+p.name+'">'
     :'<span style="font-size:'+es+'px;text-shadow:0 1px 3px rgba(0,0,0,0.7);line-height:1">'+suits[i%4]+'</span>';
-  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,'+c.bg+' 54%,transparent 54%),repeating-conic-gradient('+c.rim+' 0deg 20deg,rgba(255,255,255,0.65) 20deg 40deg);box-shadow:0 0 0 1.5px '+c.rim+',0 3px 10px rgba(0,0,0,0.55)">'+face+'</div>';
+  var chipDiv='<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,'+c.bg+' 54%,transparent 54%),repeating-conic-gradient('+c.rim+' 0deg 20deg,rgba(255,255,255,0.65) 20deg 40deg);box-shadow:0 0 0 1.5px '+c.rim+',0 3px 10px rgba(0,0,0,0.55)">'+face+'</div>';
+  var vid=PLAYER_VIDEOS[p.name]||EMPTY_CHAIR;
+  return '<div class="chip-vid-wrap" data-vid="'+vid+'" data-name="'+p.name+'" style="display:inline-flex">'+chipDiv+'</div>';
 }
 
 // ── NEXT GAME LINE ──

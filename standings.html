@@ -6,6 +6,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script src="data.js"></script>
+  <script src="player-videos.js"></script>
   <style>
     :root{--gold:#f5c842;--gold2:#e8a800;--gold3:#fde68a;--felt:#0a3d1f;--felt2:#062b15;--wood:#5c3a1e;--wood2:#3d2510;--dark:#080810;--dark2:#0e0e1a;--card:#111122;--text:#f0f0f8;--dim:#8888aa;--faint:#3a3a55;--red:#ef4444;--green:#22c55e;}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -187,7 +188,8 @@ var CHIP_COLORS=[{bg:'#dc2626',rim:'#7f1d1d'},{bg:'#2563eb',rim:'#1e3a8a'},{bg:'
 function chip(p,i,size){
   var c=CHIP_COLORS[i%CHIP_COLORS.length],inner=Math.round(size*0.62),es=Math.round(inner*0.55),suits=['♠','♥','♦','♣'];
   var face=p.avatar?'<img src="'+p.avatar+'" style="width:'+inner+'px;height:'+inner+'px;object-fit:cover;border-radius:50%;border:1.5px solid rgba(255,255,255,0.35)">':'<span style="font-size:'+es+'px;line-height:1">'+suits[i%4]+'</span>';
-  return '<div class="chip-sm" style="width:'+size+'px;height:'+size+'px;background:radial-gradient(circle,'+c.bg+' 54%,transparent 54%),repeating-conic-gradient('+c.rim+' 0deg 20deg,rgba(255,255,255,0.65) 20deg 40deg);box-shadow:0 0 0 1.5px '+c.rim+',0 3px 8px rgba(0,0,0,0.5)">'+face+'</div>';
+  var vid=PLAYER_VIDEOS[p.name]||EMPTY_CHAIR;
+  return '<div class="chip-vid-wrap" data-vid="'+vid+'" data-name="'+p.name+'" style="display:inline-flex"><div class="chip-sm" style="width:'+size+'px;height:'+size+'px;background:radial-gradient(circle,'+c.bg+' 54%,transparent 54%),repeating-conic-gradient('+c.rim+' 0deg 20deg,rgba(255,255,255,0.65) 20deg 40deg);box-shadow:0 0 0 1.5px '+c.rim+',0 3px 8px rgba(0,0,0,0.5)">'+face+'</div></div>';
 }
 
 // BUILD STANDINGS TABLE
