@@ -27,7 +27,7 @@ const LEAGUE = {
     { date: "2026-06-18", label: "Event 10",              type: "regular",    completed: true  },
     { date: "2026-07-02", label: "Event 11",              type: "regular",    completed: true  },
     { date: "2026-07-16", label: "Event 12",              type: "regular",    completed: false },
-    { date: "2026-08-01", label: "Mid-Season Tournament", type: "tournament", completed: false },
+    { date: "2026-07-25", label: "Mid-Season Tournament", type: "tournament", completed: false },
     { date: "2026-08-11", label: "Event 13",              type: "regular",    completed: false },
     { date: "2026-08-25", label: "Event 14",              type: "regular",    completed: false },
     { date: "2026-09-08", label: "Event 15",              type: "regular",    completed: false },
