@@ -342,8 +342,8 @@
   <div class="rsvp-inner">
     <div class="rsvp-head">
       <div>
-        <div class="rsvp-title">♣ Who's Playing — Event 11</div>
-        <div class="rsvp-sub">Thursday, July 2nd at 8:00 PM · Select your name and set your status so Tod can plan tables & chips</div>
+        <div class="rsvp-title" id="rsvpTitle">♣ Who's Playing — Next Event</div>
+        <div class="rsvp-sub" id="rsvpSub">Loading game info...</div>
       </div>
     </div>
 
@@ -362,7 +362,7 @@
       <!-- DONUT SIDEBAR (right, sticky) -->
       <div class="donut-sidebar">
         <div class="donut-card">
-          <div class="dc-title">Game Status — Event 11</div>
+          <div class="dc-title" id="donutTitle">Game Status</div>
           <div class="donut-wrap">
             <div id="rsvp-donut" class="donut-ring"></div>
             <div class="donut-hole">
@@ -444,7 +444,7 @@
     <a href="roster.html">Roster</a>
     <a href="admin.html">Admin</a>
   </div>
-  <div class="f-credit">TOD'S POKER LEAGUE · SEASON 20 · PEACHTREE CITY, GA</div>
+  <div class="f-credit">ARDENLEE POKER LEAGUE · SEASON 20 · PEACHTREE CITY, GA</div>
 </footer>
 
 <script>
@@ -501,9 +501,45 @@ function playerChip(p,i,size){
   var mo=['January','February','March','April','May','June','July','August','September','October','November','December'];
   var dy=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   var p=ng.date.split('-').map(Number);
-  var d=new Date(p[0],p[1]-1,p[2],20,0,0);
+  var gameDate=new Date(p[0],p[1]-1,p[2],20,0,0);
+  var today=new Date(); today.setHours(0,0,0,0);
+  var gameMidnight=new Date(p[0],p[1]-1,p[2],0,0,0);
+  var diffDays=Math.round((gameMidnight-today)/(1000*60*60*24));
+
+  // Find the next event label from schedule
+  var nextLabel='Next Event';
+  (L.schedule||[]).forEach(function(ev){if(ev.date===ng.date)nextLabel=ev.label;});
+
+  // Smart relative day label
+  var dayLabel;
+  if(diffDays===0)dayLabel='Tonight';
+  else if(diffDays===1)dayLabel='Tomorrow';
+  else dayLabel=dy[gameDate.getDay()]+', '+mo[gameDate.getMonth()]+' '+gameDate.getDate();
+
   var el=document.getElementById('nextGameLine');
-  if(el)el.textContent='Event 11 · '+dy[d.getDay()]+', '+mo[d.getMonth()]+' '+d.getDate()+', '+p[0]+' at '+ng.time;
+  if(el)el.textContent=nextLabel+' · '+dayLabel+' at '+ng.time;
+
+  // Update countdown label
+  var cdLabel=document.querySelector('.cd-label');
+  if(cdLabel){
+    if(diffDays===0)cdLabel.textContent='Tonight — game starts in';
+    else if(diffDays===1)cdLabel.textContent='Tomorrow — game starts in';
+    else cdLabel.textContent='Next game in';
+  }
+
+  // Update RSVP section titles dynamically
+  var rsvpTitle=document.getElementById('rsvpTitle');
+  if(rsvpTitle)rsvpTitle.textContent='♣ Who\'s Playing — '+nextLabel;
+  var rsvpSub=document.getElementById('rsvpSub');
+  if(rsvpSub){
+    var fullDate=dy[gameDate.getDay()]+', '+mo[gameDate.getMonth()]+' '+gameDate.getDate()+' at '+ng.time;
+    if(diffDays===0)fullDate='Tonight at '+ng.time+' — RSVP now!';
+    else if(diffDays===1)fullDate='Tomorrow at '+ng.time;
+    rsvpSub.textContent=fullDate+' · Select your name and set your status';
+  }
+  var donutTitle=document.getElementById('donutTitle');
+  if(donutTitle)donutTitle.textContent='Game Status — '+nextLabel;
+
   var hl=document.getElementById('hLeader');
   if(hl&&L.standings&&L.standings.length)hl.textContent=L.standings[0].name+' ('+L.standings[0].points.toLocaleString()+' pts)';
   var ep=document.getElementById('evPlayed');
@@ -564,6 +600,26 @@ function onNamePick(v){
 var fbKey='rsvp_'+ng.date.replace(/-/g,'_');
 var fbStatuses={};var fbLive=false;
 function loadLocal(){try{var s=localStorage.getItem('tpl_rsvp_'+fbKey);fbStatuses=s?JSON.parse(s):{};}catch(e){fbStatuses={};}}
+
+// ── INIT: load from localStorage immediately so grid shows on page load ──
+loadLocal();
+buildRsvpGrid();
+
+// ── FIREBASE LIVE LISTENER ──
+(function(){
+  if(!window._firebaseReady)return;
+  try{
+    firebase.database().ref(fbKey).on('value',function(snap){
+      fbLive=true;
+      fbStatuses=snap.val()||{};
+      try{localStorage.setItem('tpl_rsvp_'+fbKey,JSON.stringify(fbStatuses));}catch(e){}
+      buildRsvpGrid();
+    },function(err){
+      console.warn('Firebase RSVP error:',err.message);
+      loadLocal();buildRsvpGrid();
+    });
+  }catch(e){console.warn('Firebase init error:',e.message);loadLocal();buildRsvpGrid();}
+})();
 function setStatus(status){
   if(!myName)return;
   // Toggle off if clicking the already-active status (undo)
