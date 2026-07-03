@@ -1,4 +1,4 @@
-# Tod's Poker League — Website
+# APL — Website
 
 ## Deploy in 5 Minutes (GitHub Pages — Free Forever)
 

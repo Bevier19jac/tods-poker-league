@@ -1,11 +1,11 @@
 /**
- * TOD'S POKER LEAGUE - Data File
+ * ARDENLEE POKER LEAGUE - Data File
  * Season 20 | Peachtree City, GA
  * Last updated: after Event 11 (2026-07-02)
  */
 
 const LEAGUE = {
-  name: "Tod's Poker League",
+  name: "Ardenlee Poker League",
   season: 20,
   host: "Tod Ellison",
   location: "Peachtree City, GA",
@@ -111,10 +111,10 @@ const LEAGUE = {
     highHandSeason:  { player: "Tod Ellison", hand: "Quad Kings - Ace Kicker", season: 20, date: "" },
     mostWins:        { player: "Tod Ellison", count: 15, note: "Career event wins all-time" },
     mostSeasons:     { player: "Tod Ellison", count: 20, note: "All 20 seasons" },
-    mostChampionships: { player: "JH Hooper & Tod Ellison", count: 2, note: "2x APL Champions each" },
+    mostChampionships: { player: "JH Hooper & Tod Ellison", count: 2, note: "2x Ardenlee Champions each" },
   },
 
-  // APL Season Champions — JH Hooper and Tod Ellison are each 2x champions
+  // Ardenlee Season Champions — JH Hooper and Tod Ellison are each 2x champions
   champions: [
     { season: 19, year: 2025, champion: "Charlie Grant", note: "First season, first championship" },
     { season: 18, year: 2024, champion: "Eric C",        note: "" },
@@ -133,16 +133,4 @@ const LEAGUE = {
     { season:  5, year: 2011, champion: "Al",            note: "" },
     { season:  4, year: 2010, champion: "Derek",         note: "" },
     { season:  3, year: 2009, champion: "Sal",           note: "" },
-    { season:  2, year: 2008, champion: "Steve",         note: "" },
-    { season:  1, year: 2007, champion: "Steve",         note: "Inaugural season" },
-  ],
-
-  history: [],
-
-  nextGame: {
-    date: "2026-07-16",
-    time: "8:00 PM",
-    note: "",
-    rsvp: { in: [], out: [] }
-  },
-};
+    { season:  2, y

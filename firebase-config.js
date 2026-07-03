@@ -1,5 +1,5 @@
 /**
- * FIREBASE CONFIG — Tod's Poker League RSVP
+ * FIREBASE CONFIG — Ardenlee Poker League RSVP
  *
  * SETUP STEPS (one time, ~5 minutes):
  * 1. Go to https://console.firebase.google.com

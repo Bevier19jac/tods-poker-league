@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tod's Poker League — Season 20</title>
+  <title>Ardenlee Poker League — Season 20</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script src="data.js"></script>
@@ -234,7 +234,7 @@
 <body>
 
 <nav>
-  <a href="index.html" class="nav-brand">♠ Tod's Poker League</a>
+  <a href="index.html" class="nav-brand">♠ Ardenlee Poker League</a>
   <div class="nav-links">
     <a href="index.html" class="active">Home</a>
     <a href="standings.html">Standings</a>
@@ -302,7 +302,7 @@
   <div class="float-suits" id="floatSuits"></div>
 
   <div class="hero-inner">
-    <div class="eyebrow">Season 20 &nbsp;·&nbsp; Peachtree City, GA &nbsp;·&nbsp; APL Style</div>
+    <div class="eyebrow">Season 20 &nbsp;·&nbsp; Peachtree City, GA &nbsp;·&nbsp; Ardenlee Poker League Style</div>
     <h1>Tod's <span>Poker</span> League</h1>
     <div class="hero-sub" id="nextGameLine">Loading next game...</div>
 
@@ -673,131 +673,4 @@ function buildRsvpGrid(){
   var done=(L.schedule||[]).filter(function(e){return e.completed;}).length;
   var top=L.standings[0];
   div.innerHTML=
-    '<div class="sb hi"><div class="sb-val">'+top.points.toLocaleString()+'</div><div class="sb-lbl">Points Leader ('+top.name+')</div></div>'+
-    '<div class="sb"><div class="sb-val">'+done+'</div><div class="sb-lbl">Events Played</div></div>'+
-    '<div class="sb"><div class="sb-val">'+L.standings.length+'</div><div class="sb-lbl">Active Players</div></div>'+
-    '<div class="sb"><div class="sb-val">Sep 22</div><div class="sb-lbl">Season Final Date</div></div>'+
-    '<div class="sb"><div class="sb-val">Sep 22</div><div class="sb-lbl">Season Final Date</div></div>';
-})();
-
-// ── INIT ──
-loadLocal();
-buildRsvpGrid();
-
-try{
-  // Live RSVP sync
-  firebase.database().ref(fbKey).on('value',function(snap){
-    fbStatuses=snap.val()||{};fbLive=true;buildRsvpGrid();
-  });
-  // Live league data sync — admin changes update the public dashboard instantly
-  firebase.database().ref('league').on('value',function(snap){
-    var d=snap.val();
-    if(!d)return;
-    if(d.nextGame)  { L.nextGame=d.nextGame; var ng=L.nextGame; var fbKey2='rsvp_'+ng.date.replace(/-/g,'_'); }
-    if(d.standings) { L.standings=d.standings; buildRsvpGrid(); }
-    if(d.lastGame)  { L.lastGame=d.lastGame; }
-    if(d.announcements){ L.announcements=d.announcements; }
-    // Refresh announcement banner
-    var annDiv=document.getElementById('announcements');
-    if(annDiv&&d.announcements){
-      annDiv.innerHTML='';
-      (d.announcements||[]).filter(function(a){return a.active;}).forEach(function(a){
-        var b=document.createElement('div');b.className='ann-bar ann-'+(a.type||'info');
-        b.innerHTML='<span class="ann-icon">'+(a.icon||'📢')+'</span><span>'+a.text+'</span>';
-        annDiv.appendChild(b);
-      });
-    }
-  });
-}catch(e){console.info('Local RSVP mode');}
-
-// ── SEAT DRAW ──
-var seatFbKey='seats_'+ng.date.replace(/-/g,'_');
-function drawSeats(){
-  var inPlayers=[];
-  L.standings.forEach(function(p){
-    if((fbStatuses[p.name]||'')==='in')inPlayers.push(p.name);
-  });
-  if(inPlayers.length===0){alert('No players marked In yet!');return;}
-  // Fisher-Yates shuffle
-  for(var i=inPlayers.length-1;i>0;i--){
-    var j=Math.floor(Math.random()*(i+1));
-    var tmp=inPlayers[i];inPlayers[i]=inPlayers[j];inPlayers[j]=tmp;
-  }
-  var seats={};
-  inPlayers.forEach(function(name,idx){seats[name]=idx+1;});
-  try{firebase.database().ref(seatFbKey).set(seats);}catch(e){}
-  renderSeats(seats);
-}
-function renderSeats(seats){
-  var grid=document.getElementById('seatGrid');
-  var empty=document.getElementById('seatEmpty');
-  if(!seats||!Object.keys(seats).length){if(empty)empty.style.display='';grid.innerHTML='<div class="seat-empty" id="seatEmpty">No seat draw yet — click Randomize Seats to assign seats to all players marked In.</div>';return;}
-  if(empty)empty.style.display='none';
-  // Sort by seat number
-  var sorted=Object.keys(seats).sort(function(a,b){return seats[a]-seats[b];});
-  grid.innerHTML=sorted.map(function(name){
-    return '<div class="seat-card"><div class="seat-num">'+seats[name]+'</div><div class="seat-name">'+name+'</div></div>';
-  }).join('');
-}
-// Load existing seat draw from Firebase
-try{
-  firebase.database().ref(seatFbKey).once('value',function(snap){
-    var d=snap.val();if(d)renderSeats(d);
-  });
-}catch(e){}
-window.drawSeats=drawSeats;
-
-// ── CHAT ──
-var chatFbKey='chat';
-var chatLoaded=false;
-// Load name from localStorage
-(function(){
-  try{var n=localStorage.getItem('tpl_chatname');if(n)document.getElementById('chatName').value=n;}catch(e){}
-  // Allow Enter key to send
-  var inp=document.getElementById('chatText');
-  if(inp)inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChatMsg();}});
-})();
-function sendChatMsg(){
-  var nameEl=document.getElementById('chatName');
-  var textEl=document.getElementById('chatText');
-  var name=(nameEl.value||'').trim();
-  var text=(textEl.value||'').trim();
-  if(!name){nameEl.focus();nameEl.style.borderColor='var(--red)';setTimeout(function(){nameEl.style.borderColor='';},1500);return;}
-  if(!text)return;
-  try{localStorage.setItem('tpl_chatname',name);}catch(e){}
-  var msg={name:name,text:text,ts:Date.now()};
-  try{
-    firebase.database().ref(chatFbKey).push(msg);
-    textEl.value='';
-  }catch(e){
-    // Fallback: show locally
-    appendChatMsg(msg);
-    textEl.value='';
-  }
-}
-function appendChatMsg(msg){
-  var box=document.getElementById('chatMessages');
-  var empty=document.getElementById('chatEmpty');
-  if(empty)empty.style.display='none';
-  var d=document.createElement('div');d.className='chat-msg';
-  var t=new Date(msg.ts);
-  var ts=t.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-  d.innerHTML='<div class="chat-msg-name">'+msg.name+'</div><div class="chat-msg-text">'+msg.text.replace(/</g,'&lt;')+'</div><div class="chat-msg-time">'+ts+'</div>';
-  box.appendChild(d);
-  box.scrollTop=box.scrollHeight;
-}
-try{
-  firebase.database().ref(chatFbKey).orderByChild('ts').limitToLast(100).on('value',function(snap){
-    var box=document.getElementById('chatMessages');
-    var empty=document.getElementById('chatEmpty');
-    box.innerHTML='';
-    var msgs=[];snap.forEach(function(c){msgs.push(c.val());});
-    if(!msgs.length){box.innerHTML='<div class="chat-empty" id="chatEmpty">No messages yet. Be the first to say something!</div>';return;}
-    if(empty)empty.style.display='none';
-    msgs.forEach(appendChatMsg);
-  });
-}catch(e){console.info('Chat: local only');}
-window.sendChatMsg=sendChatMsg;
-</script>
-</body>
-</html>
+    '<div class="sb hi"><div class="sb-val">'+top.points.toLocaleString()+'</div><div class="sb-lbl">Points Leader ('+top.name+')</d
