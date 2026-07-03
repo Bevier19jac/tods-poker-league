@@ -188,6 +188,40 @@
     .sb-lbl{font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-top:5px}
     .sb.hi .sb-val{color:var(--green)}
 
+    /* ── SEAT DRAW ── */
+    .seat-section{padding:2.5rem 1.5rem;background:linear-gradient(rgba(6,43,21,0.35),transparent)}
+    .seat-inner{max-width:900px;margin:0 auto}
+    .seat-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem}
+    .seat-title{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:#fff}
+    .seat-title span{color:var(--gold)}
+    .seat-draw-btn{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;border:none;padding:0.6rem 1.4rem;border-radius:20px;font-weight:700;font-size:0.82rem;cursor:pointer;letter-spacing:0.04em;transition:opacity 0.2s}
+    .seat-draw-btn:hover{opacity:0.85}
+    .seat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.7rem}
+    .seat-card{background:var(--card);border:1px solid rgba(245,200,66,0.12);border-radius:12px;padding:0.9rem 1rem;display:flex;align-items:center;gap:0.75rem}
+    .seat-num{font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--gold);min-width:2ch;text-align:center}
+    .seat-name{font-size:0.88rem;font-weight:600;color:var(--text)}
+    .seat-empty{text-align:center;color:var(--faint);font-size:0.85rem;padding:1rem}
+
+    /* ── CHAT ── */
+    .chat-section{padding:2.5rem 1.5rem 3rem;border-top:1px solid rgba(245,200,66,0.06)}
+    .chat-inner{max-width:700px;margin:0 auto}
+    .chat-title{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:#fff;margin-bottom:1.2rem}
+    .chat-title span{color:var(--gold)}
+    .chat-messages{background:var(--dark2);border:1px solid rgba(245,200,66,0.1);border-radius:14px;padding:1rem;height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem}
+    .chat-msg{background:var(--card);border-radius:10px;padding:0.55rem 0.85rem;border:1px solid rgba(245,200,66,0.06)}
+    .chat-msg-name{font-size:0.7rem;font-weight:700;color:var(--gold2);margin-bottom:0.15rem;letter-spacing:0.03em}
+    .chat-msg-text{font-size:0.85rem;color:var(--text);line-height:1.45;word-break:break-word}
+    .chat-msg-time{font-size:0.62rem;color:var(--faint);margin-top:0.2rem}
+    .chat-form{display:flex;gap:0.5rem;flex-wrap:wrap}
+    .chat-name-input{background:var(--card);border:1px solid rgba(245,200,66,0.2);border-radius:8px;color:var(--text);padding:0.55rem 0.75rem;font-size:0.82rem;width:140px;outline:none}
+    .chat-name-input:focus{border-color:var(--gold2)}
+    .chat-text-input{background:var(--card);border:1px solid rgba(245,200,66,0.2);border-radius:8px;color:var(--text);padding:0.55rem 0.75rem;font-size:0.82rem;flex:1;min-width:160px;outline:none}
+    .chat-text-input:focus{border-color:var(--gold2)}
+    .chat-send-btn{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;border:none;padding:0.55rem 1.2rem;border-radius:8px;font-weight:700;font-size:0.82rem;cursor:pointer;transition:opacity 0.2s;white-space:nowrap}
+    .chat-send-btn:hover{opacity:0.85}
+    .chat-empty{color:var(--faint);font-size:0.82rem;text-align:center;padding:2rem 0}
+    @media(max-width:500px){.chat-name-input{width:100%}.chat-form{gap:0.4rem}}
+
     /* FOOTER */
     footer{background:var(--dark2);border-top:1px solid rgba(245,200,66,0.08);padding:2rem;text-align:center}
     .f-links{display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:0.9rem}
@@ -370,6 +404,34 @@
 <!-- SEASON STATS -->
 <section class="stats-strip">
   <div class="stats-inner" id="statsInner"></div>
+</section>
+
+<!-- SEAT DRAW -->
+<section class="seat-section" id="seatSection">
+  <div class="seat-inner">
+    <div class="seat-head">
+      <div class="seat-title">🃏 <span>Seat</span> Draw</div>
+      <button class="seat-draw-btn" id="seatDrawBtn" onclick="drawSeats()">🎲 Randomize Seats</button>
+    </div>
+    <div class="seat-grid" id="seatGrid">
+      <div class="seat-empty" id="seatEmpty">No seat draw yet — click Randomize Seats to assign seats to all players marked In.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CHAT -->
+<section class="chat-section">
+  <div class="chat-inner">
+    <div class="chat-title">💬 <span>League</span> Chat</div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-empty" id="chatEmpty">No messages yet. Be the first to say something!</div>
+    </div>
+    <div class="chat-form">
+      <input class="chat-name-input" id="chatName" type="text" placeholder="Your name" maxlength="20">
+      <input class="chat-text-input" id="chatText" type="text" placeholder="Say something…" maxlength="280">
+      <button class="chat-send-btn" onclick="sendChatMsg()">Send</button>
+    </div>
+  </div>
 </section>
 
 <footer>
@@ -647,6 +709,95 @@ try{
     }
   });
 }catch(e){console.info('Local RSVP mode');}
+
+// ── SEAT DRAW ──
+var seatFbKey='seats_'+ng.date.replace(/-/g,'_');
+function drawSeats(){
+  var inPlayers=[];
+  L.standings.forEach(function(p){
+    if((fbStatuses[p.name]||'')==='in')inPlayers.push(p.name);
+  });
+  if(inPlayers.length===0){alert('No players marked In yet!');return;}
+  // Fisher-Yates shuffle
+  for(var i=inPlayers.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var tmp=inPlayers[i];inPlayers[i]=inPlayers[j];inPlayers[j]=tmp;
+  }
+  var seats={};
+  inPlayers.forEach(function(name,idx){seats[name]=idx+1;});
+  try{firebase.database().ref(seatFbKey).set(seats);}catch(e){}
+  renderSeats(seats);
+}
+function renderSeats(seats){
+  var grid=document.getElementById('seatGrid');
+  var empty=document.getElementById('seatEmpty');
+  if(!seats||!Object.keys(seats).length){if(empty)empty.style.display='';grid.innerHTML='<div class="seat-empty" id="seatEmpty">No seat draw yet — click Randomize Seats to assign seats to all players marked In.</div>';return;}
+  if(empty)empty.style.display='none';
+  // Sort by seat number
+  var sorted=Object.keys(seats).sort(function(a,b){return seats[a]-seats[b];});
+  grid.innerHTML=sorted.map(function(name){
+    return '<div class="seat-card"><div class="seat-num">'+seats[name]+'</div><div class="seat-name">'+name+'</div></div>';
+  }).join('');
+}
+// Load existing seat draw from Firebase
+try{
+  firebase.database().ref(seatFbKey).once('value',function(snap){
+    var d=snap.val();if(d)renderSeats(d);
+  });
+}catch(e){}
+window.drawSeats=drawSeats;
+
+// ── CHAT ──
+var chatFbKey='chat';
+var chatLoaded=false;
+// Load name from localStorage
+(function(){
+  try{var n=localStorage.getItem('tpl_chatname');if(n)document.getElementById('chatName').value=n;}catch(e){}
+  // Allow Enter key to send
+  var inp=document.getElementById('chatText');
+  if(inp)inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChatMsg();}});
+})();
+function sendChatMsg(){
+  var nameEl=document.getElementById('chatName');
+  var textEl=document.getElementById('chatText');
+  var name=(nameEl.value||'').trim();
+  var text=(textEl.value||'').trim();
+  if(!name){nameEl.focus();nameEl.style.borderColor='var(--red)';setTimeout(function(){nameEl.style.borderColor='';},1500);return;}
+  if(!text)return;
+  try{localStorage.setItem('tpl_chatname',name);}catch(e){}
+  var msg={name:name,text:text,ts:Date.now()};
+  try{
+    firebase.database().ref(chatFbKey).push(msg);
+    textEl.value='';
+  }catch(e){
+    // Fallback: show locally
+    appendChatMsg(msg);
+    textEl.value='';
+  }
+}
+function appendChatMsg(msg){
+  var box=document.getElementById('chatMessages');
+  var empty=document.getElementById('chatEmpty');
+  if(empty)empty.style.display='none';
+  var d=document.createElement('div');d.className='chat-msg';
+  var t=new Date(msg.ts);
+  var ts=t.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+t.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  d.innerHTML='<div class="chat-msg-name">'+msg.name+'</div><div class="chat-msg-text">'+msg.text.replace(/</g,'&lt;')+'</div><div class="chat-msg-time">'+ts+'</div>';
+  box.appendChild(d);
+  box.scrollTop=box.scrollHeight;
+}
+try{
+  firebase.database().ref(chatFbKey).orderByChild('ts').limitToLast(100).on('value',function(snap){
+    var box=document.getElementById('chatMessages');
+    var empty=document.getElementById('chatEmpty');
+    box.innerHTML='';
+    var msgs=[];snap.forEach(function(c){msgs.push(c.val());});
+    if(!msgs.length){box.innerHTML='<div class="chat-empty" id="chatEmpty">No messages yet. Be the first to say something!</div>';return;}
+    if(empty)empty.style.display='none';
+    msgs.forEach(appendChatMsg);
+  });
+}catch(e){console.info('Chat: local only');}
+window.sendChatMsg=sendChatMsg;
 </script>
 </body>
 </html>
