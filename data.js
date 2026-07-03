@@ -10,13 +10,8 @@ const LEAGUE = {
   host: "Tod Ellison",
   location: "Peachtree City, GA",
 
-  // ── ANNOUNCEMENTS ──
-  // Set active:true to show a banner above the RSVP section
-  // type options: "info" (blue) | "special" (gold) | "warning" (red)
   announcements: [
-    { active: true, type: "special", icon: "🏆", text: "Jeremy Bollinger wins Event 11! Next game: July 16th at 8 PM at Tod's. RSVP below!" },
-    // { active: true, type: "info",    icon: "📅", text: "Next game confirmed: July 16th at 8 PM at Tod's" },
-    // { active: true, type: "warning", icon: "⚠",  text: "Location change for next event — contact Tod for details" },
+    { active: true, type: "special", icon: "\u{1F3C6}", text: "Jeremy Bollinger wins Event 11! Next game: July 16th at 8 PM at Tod's. RSVP below!" },
   ],
 
   schedule: [
@@ -69,7 +64,6 @@ const LEAGUE = {
     highHand: { player: "", hand: "", description: "" },
   },
 
-  // STANDINGS — after Event 11 (2026-07-02)
   standings: [
     { name: "Tod",     fullName: "Tod Ellison",       events: 11, points: 47300, wins: 1, cashes: 4,  avgPlace: 7.2,  avatar: "avatars/tod.png"     },
     { name: "Karey",   fullName: "Karey Koscevic",    events: 8,  points: 35800, wins: 3, cashes: 4,  avgPlace: 6.8,  avatar: "avatars/karey.png"   },
@@ -107,14 +101,13 @@ const LEAGUE = {
   ],
 
   records: {
-    highHandAllTime: { player: "Tod Ellison", hand: "Quad Kings - Ace Kicker", season: 20, date: "" },
-    highHandSeason:  { player: "Tod Ellison", hand: "Quad Kings - Ace Kicker", season: 20, date: "" },
-    mostWins:        { player: "Tod Ellison", count: 15, note: "Career event wins all-time" },
-    mostSeasons:     { player: "Tod Ellison", count: 20, note: "All 20 seasons" },
-    mostChampionships: { player: "JH Hooper & Tod Ellison", count: 2, note: "2x Ardenlee Champions each" },
+    highHandAllTime:    { player: "Tod Ellison", hand: "Quad Kings - Ace Kicker", season: 20, date: "" },
+    highHandSeason:     { player: "Tod Ellison", hand: "Quad Kings - Ace Kicker", season: 20, date: "" },
+    mostWins:           { player: "Tod Ellison", count: 15, note: "Career event wins all-time" },
+    mostSeasons:        { player: "Tod Ellison", count: 20, note: "All 20 seasons" },
+    mostChampionships:  { player: "JH Hooper & Tod Ellison", count: 2, note: "2x Ardenlee Champions each" },
   },
 
-  // Ardenlee Season Champions — JH Hooper and Tod Ellison are each 2x champions
   champions: [
     { season: 19, year: 2025, champion: "Charlie Grant", note: "First season, first championship" },
     { season: 18, year: 2024, champion: "Eric C",        note: "" },
@@ -133,4 +126,16 @@ const LEAGUE = {
     { season:  5, year: 2011, champion: "Al",            note: "" },
     { season:  4, year: 2010, champion: "Derek",         note: "" },
     { season:  3, year: 2009, champion: "Sal",           note: "" },
-    { season:  2, y
+    { season:  2, year: 2008, champion: "",              note: "" },
+    { season:  1, year: 2007, champion: "",              note: "" },
+  ],
+
+  nextGame: {
+    date:      "2026-07-16",
+    label:     "Event 12",
+    time:      "8:00 PM",
+    location:  "Tod's",
+    buyin:     20,
+    maxPlayers: 20,
+  },
+};
