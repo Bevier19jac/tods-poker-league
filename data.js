@@ -11,7 +11,7 @@ const LEAGUE = {
   location: "Peachtree City, GA",
 
   announcements: [
-    { active: true, type: "special", icon: "\u{1F3C6}", text: "Jeremy Bollinger wins Event 11! Next game: July 16th at 8 PM at Tod's. RSVP below!" },
+    { active: true, type: "special", icon: "🏆", text: "Jeremy Bollinger wins Event 11! Next game: July 16th at 8 PM at Tod's. RSVP below!" },
   ],
 
   schedule: [
