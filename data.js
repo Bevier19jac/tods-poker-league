@@ -14,7 +14,7 @@ const LEAGUE = {
   // Set active:true to show a banner above the RSVP section
   // type options: "info" (blue) | "special" (gold) | "warning" (red)
   announcements: [
-    { active: true, type: "special", icon: "🏆", text: "Jeremy Bollinger wins Event 11! 18 players, $380 pot. Next game: July 16th at 8 PM at Tod's. RSVP below!" },
+    { active: true, type: "special", icon: "🏆", text: "Jeremy Bollinger wins Event 11! Next game: July 16th at 8 PM at Tod's. RSVP below!" },
     // { active: true, type: "info",    icon: "📅", text: "Next game confirmed: July 16th at 8 PM at Tod's" },
     // { active: true, type: "warning", icon: "⚠",  text: "Location change for next event — contact Tod for details" },
   ],
