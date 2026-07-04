@@ -29,7 +29,7 @@ var PLAYER_VIDEOS={
   'Justin': 'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214553_3784f7f6-40c3-4eab-86b0-d1120f892d55.mp4'
 };
 
-(function(){
+document.addEventListener('DOMContentLoaded',function(){
   // Styles
   var style=document.createElement('style');
   style.textContent=[
@@ -87,10 +87,10 @@ var PLAYER_VIDEOS={
   // Click chip to open, click X or overlay to close — works on ALL devices, ALL pages
   document.body.addEventListener('click',function(e){
     if(e.target.closest('#cvpClose')||e.target===overlay){hide();return;}
-    if(popup.contains(e.target))return; // clicking inside popup does nothing
+    if(popup.contains(e.target))return;
     var w=e.target.closest&&e.target.closest('.chip-vid-wrap');
     if(!w){return;}
     if(w===activeWrap){hide();return;}
     show(w);
   });
-})();
+});
