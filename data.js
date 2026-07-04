@@ -136,7 +136,10 @@ const LEAGUE = {
     label:     "Event 12",
     time:      "8:00 PM",
     location:  "Tod's",
-    buyin:     20,
+    buyin:     40,        // $40 = 6,000 chips; rebuy by break = +6,000 chips
+    earlyBonus: 500,      // 500 chip bonus for early arrival
+    startStack: 6000,
+    rebuyStack: 6000,
     maxPlayers: 20,
   },
 };
