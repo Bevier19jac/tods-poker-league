@@ -23,7 +23,7 @@ var PLAYER_VIDEOS={
   'Toner':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260704_154307_09cb66b0-b3fe-4f67-8c00-9d7f7a44e80a.mp4',
   'Brian':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213850_10e9bca0-11a2-44d6-a308-82267fb21319.mp4',
   'Jake':   'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213853_11fd850c-570d-498f-9cb1-34df9eda41ba.mp4',
-  'Jeremy': 'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214545_a5687d86-a66b-4eec-a7a9-443ad75ea565.mp4',
+  'Jeremy': 'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260704_204438_cd83c93d-c521-433f-a364-2b30fa1b0c55.mp4',
   'Sal':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214547_7927dcc1-f210-421b-b689-9b40ec1c5ead.mp4',
   'Tim':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214550_ab3814b6-caf2-40be-8a23-eb0a97783ad6.mp4',
   'Justin': 'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214553_3784f7f6-40c3-4eab-86b0-d1120f892d55.mp4'
