@@ -16,17 +16,18 @@ var PLAYER_VIDEOS={
   'Jay':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260704_160901_94202ca0-bffc-4b57-aff2-dfa5f48859c4.mp4',
   'Nate':   'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260704_204043_afb87cc7-dcb3-4da5-aad6-67d1b879cf01.mp4',
   'Chris P':'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260704_161910_d7d708b5-f0e8-4b4b-8054-6824630f160b.mp4',
-  'Philo':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213435_685160ae-b7ac-4f6b-b1a8-987141b9e61e.mp4',
-  'Tom':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_212714_5f1abf3f-a0c2-4dea-9b8c-31df7bd5d2fe.mp4',
+  'Philo':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260705_005450_372fd0ad-9e1c-4e95-b364-2df1c9591b15.mp4',
+  'Tom':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260705_005435_c01d80aa-c0f4-4c0c-b397-707a20db35b2.mp4',
   'Charlie':'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260704_135544_9575e9a0-9da6-44b2-a530-2a90092c6f92.mp4',
   'Eric':   'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260704_155437_92512fa0-8e3b-4285-8169-0f62922acea9.mp4',
   'Toner':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260704_154307_09cb66b0-b3fe-4f67-8c00-9d7f7a44e80a.mp4',
-  'Brian':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213850_10e9bca0-11a2-44d6-a308-82267fb21319.mp4',
-  'Jake':   'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213853_11fd850c-570d-498f-9cb1-34df9eda41ba.mp4',
+  'Brian':  'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260705_005500_2824375b-75d4-49b6-a885-81527383d333.mp4',
+  'Jake':   'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260705_005510_4f871c89-d773-4d0d-97df-3870de475d58.mp4',
   'Jeremy': 'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260704_204438_cd83c93d-c521-433f-a364-2b30fa1b0c55.mp4',
-  'Sal':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214547_7927dcc1-f210-421b-b689-9b40ec1c5ead.mp4',
-  'Tim':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214550_ab3814b6-caf2-40be-8a23-eb0a97783ad6.mp4',
-  'Justin': 'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_214553_3784f7f6-40c3-4eab-86b0-d1120f892d55.mp4'
+  'Sal':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260705_005525_c58e9d49-c78b-4306-a498-ed383ac647a0.mp4',
+  'Tim':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260705_005535_b47ec995-3687-4cd5-aa94-b079e14fd880.mp4',
+  'Justin': 'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260705_005633_5b104123-9bdd-456d-8dd5-a877a2c9d3d5.mp4',
+  'Matt':   'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260704_104322_6db29c9d-f06f-4ab9-9aae-e200929410dc.mp4'
 };
 
 document.addEventListener('DOMContentLoaded',function(){
