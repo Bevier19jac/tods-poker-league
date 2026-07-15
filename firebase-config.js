@@ -1,16 +1,5 @@
 /**
  * FIREBASE CONFIG — Ardenlee Poker League RSVP
- *
- * SETUP STEPS (one time, ~5 minutes):
- * 1. Go to https://console.firebase.google.com
- * 2. Click "Add project" → name it "tods-poker-league" → Continue
- * 3. Disable Google Analytics → Create project
- * 4. Click "Build" → "Realtime Database" → "Create database"
- *    → Choose "United States" → Start in TEST MODE → Enable
- * 5. Click the gear icon → "Project settings" → scroll to "Your apps"
- *    → Click </> (Web) → name it "poker-league" → Register
- * 6. Copy the firebaseConfig values below and paste them in
- * 7. Upload this file to GitHub alongside index.html and data.js
  */
 
 const firebaseConfig = {
@@ -24,10 +13,19 @@ const firebaseConfig = {
 };
 
 try {
-  firebase.initializeApp(firebaseConfig);
+  // Guard against duplicate-app error if script somehow runs twice
+  if (!firebase.apps || firebase.apps.length === 0) {
+    firebase.initializeApp(firebaseConfig);
+  }
   window._firebaseReady = true;
-  window._firebaseAuth = firebase.auth();
 } catch(e) {
+  console.warn('Firebase init error:', e.message);
   window._firebaseReady = false;
+}
+
+// Auth is optional — keep it separate so a failure here doesn't break RSVP/chat
+try {
+  window._firebaseAuth = firebase.auth ? firebase.auth() : null;
+} catch(e) {
   window._firebaseAuth = null;
 }
