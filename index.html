@@ -415,6 +415,7 @@
       <div class="seat-title">🃏 <span>Seat</span> Draw</div>
       <button class="seat-draw-btn" id="seatDrawBtn" onclick="drawSeats()">🎲 Randomize Seats</button>
     </div>
+    <div class="seat-hint" style="font-size:0.72rem;color:var(--dim);margin-bottom:0.8rem;">Seats are assigned from players marked <strong style="color:#4ade80">In</strong>. Click the button to randomize — everyone sees the same draw live. At <strong style="color:var(--gold)">7:45 PM</strong> on game night it auto-assigns if not already done.</div>
     <div class="seat-grid" id="seatGrid">
       <div class="seat-empty" id="seatEmpty">No seat draw yet — click Randomize Seats to assign seats to all players marked In.</div>
     </div>
@@ -584,24 +585,20 @@ buildRsvpGrid();
 
 // ── FIREBASE LIVE LISTENER ──
 function startFirebaseListeners(){
-  if(!window._firebaseReady)return;
-  // RSVP listener
+  if(!window._firebaseReady){return;}
+  // RSVP
   try{
     firebase.database().ref(fbKey).on('value',function(snap){
       fbLive=true;
       fbStatuses=snap.val()||{};
       try{localStorage.setItem('tpl_rsvp_'+fbKey,JSON.stringify(fbStatuses));}catch(e){}
       buildRsvpGrid();
-    },function(err){
-      console.warn('Firebase RSVP error:',err.message);
-      loadLocal();buildRsvpGrid();
-    });
+    },function(err){console.warn('Firebase RSVP error:',err.message);loadLocal();buildRsvpGrid();});
   }catch(e){console.warn('Firebase RSVP init error:',e.message);loadLocal();buildRsvpGrid();}
-  // Seat draw listener — sync randomized seats to all clients
+  // Seat draw — sync randomized seats to all clients
   try{
     firebase.database().ref('seats_'+fbKey).on('value',function(snap){
-      var seats=snap.val();
-      if(seats&&seats.length)renderSeats(seats);
+      var seats=snap.val();if(seats&&seats.length)renderSeats(seats);
     });
   }catch(e){console.warn('Firebase seats error:',e.message);}
 }
@@ -755,4 +752,65 @@ function buildRsvpGrid(){
     var name=(nameEl&&nameEl.value.trim())||'Anonymous';
     var text=textEl&&textEl.value.trim();
     if(!text)return;
-    try{localStorage.setIt
+    try{localStorage.setItem('tpl_chatname',name);}catch(e){}
+    var msg={name:name,text:text,ts:Date.now()};
+    if(window._firebaseReady){
+      try{firebase.database().ref('chat').push(msg);if(textEl)textEl.value='';return;}
+      catch(e){console.warn('Chat send error:',e.message);}
+    }
+    renderMsg(msg);
+    if(textEl)textEl.value='';
+  };
+})();
+
+// ── SEAT DRAW ──
+function renderSeats(seats){
+  var grid=document.getElementById('seatGrid');if(!grid)return;
+  if(!seats||!seats.length){
+    grid.innerHTML='<div class="seat-empty" id="seatEmpty">No seat draw yet — click Randomize Seats to assign seats to all players marked In.</div>';
+    return;
+  }
+  var html='';
+  seats.forEach(function(name,i){
+    html+='<div class="seat-card"><div class="seat-num">'+(i+1)+'</div><div class="seat-name">'+name+'</div></div>';
+  });
+  grid.innerHTML=html;
+}
+function drawSeats(){
+  var ins=Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';});
+  if(!ins.length){alert('No players marked In yet!');return;}
+  var arr=ins.slice();
+  for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=arr[i];arr[i]=arr[j];arr[j]=t;}
+  renderSeats(arr);
+  if(fbLive&&window._firebaseReady){
+    try{firebase.database().ref('seats_'+fbKey).set(arr);}catch(e){console.warn('Seat save error:',e.message);}
+  }
+}
+window.drawSeats=drawSeats;
+
+// ── AUTO SEAT DRAW AT 7:45 PM ON GAME NIGHT ──
+(function(){
+  var p=ng.date.split('-').map(Number);
+  var gameDate=new Date(p[0],p[1]-1,p[2]);
+  var now=new Date();
+  var isGameNight=(now.getFullYear()===gameDate.getFullYear()&&now.getMonth()===gameDate.getMonth()&&now.getDate()===gameDate.getDate());
+  if(!isGameNight)return;
+  function checkAutoSeat(){
+    var n=new Date();
+    if(n.getHours()===19&&n.getMinutes()>=45){
+      if(fbLive&&window._firebaseReady){
+        firebase.database().ref('seats_'+fbKey).once('value',function(snap){
+          if(!snap.val()){drawSeats();}
+        });
+      } else if(Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';}).length&&!document.getElementById('seatGrid').querySelector('.seat-card')){
+        drawSeats();
+      }
+    }
+  }
+  setInterval(checkAutoSeat,30000);
+  checkAutoSeat();
+})();
+
+</script>
+</body>
+</html>
