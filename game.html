@@ -1308,22 +1308,18 @@ function pickLine(arr, vars){
   return [text, item[1]];
 }
 
-// Seat draw announcement (called from index.html after draw)
+// Seat draw announcement (called from index.html after manual draw)
 window.announceSeatDraw = function(seats){
-  if(!commentaryEnabled) return;
-  var queue = [];
-  seats.forEach(function(name,i){
-    var line = name + ', seat ' + (i+1);
-    queue.push(line); queue.push(line);
-  });
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
   var idx=0;
   function next(){
-    if(idx>=queue.length) return;
-    var u=new SpeechSynthesisUtterance(queue[idx++]);
-    u.rate=0.88; u.pitch=1.0;
-    u.onend=function(){ setTimeout(next,500); };
-    window.speechSynthesis.cancel();
+    if(idx>=seats.length) return;
+    var u=new SpeechSynthesisUtterance(seats[idx]+', seat '+(idx+1));
+    u.rate=1.05; u.pitch=1.0;
+    u.onend=function(){ setTimeout(next,280); };
     window.speechSynthesis.speak(u);
+    idx++;
   }
   next();
 };

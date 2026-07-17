@@ -858,7 +858,7 @@ function renderSeats(seats){
     if(sec)setTimeout(function(){sec.scrollIntoView({behavior:'smooth',block:'start'});},400);
   }
 }
-function drawSeats(){
+function drawSeats(quiet){
   if(myName!=='Tod'){alert('Only Tod can randomize seats.');return;}
   var ins=Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';});
   if(!ins.length){alert('No players marked In yet!');return;}
@@ -868,22 +868,20 @@ function drawSeats(){
   if(fbLive&&window._firebaseReady){
     try{firebase.database().ref('seats_'+fbKey).set(arr);}catch(e){console.warn('Seat save error:',e.message);}
   }
-  // Announce seats aloud (uses game.html voice engine if loaded, else Web Speech fallback)
-  announceSeatsDirect(arr);
+  // Only announce on manual draw, not auto-draw
+  if(!quiet) announceSeatsDirect(arr);
 }
 function announceSeatsDirect(arr){
-  if(window.announceSeatDraw){window.announceSeatDraw(arr);return;}
   if(!window.speechSynthesis)return;
   window.speechSynthesis.cancel();
-  var queue=[];
-  arr.forEach(function(name,i){var t=name+', seat '+(i+1);queue.push(t);queue.push(t);});
   var idx=0;
   function next(){
-    if(idx>=queue.length)return;
-    var u=new SpeechSynthesisUtterance(queue[idx++]);
-    u.rate=0.88;u.pitch=1.0;
-    u.onend=function(){setTimeout(next,550);};
+    if(idx>=arr.length)return;
+    var u=new SpeechSynthesisUtterance(arr[idx]+', seat '+(idx+1));
+    u.rate=1.05; u.pitch=1.0;
+    u.onend=function(){setTimeout(next,280);};
     window.speechSynthesis.speak(u);
+    idx++;
   }
   next();
 }
@@ -901,10 +899,10 @@ window.drawSeats=drawSeats;
     if(n.getHours()===19&&n.getMinutes()>=55){
       if(fbLive&&window._firebaseReady){
         firebase.database().ref('seats_'+fbKey).once('value',function(snap){
-          if(!snap.val()){drawSeats();}
+          if(!snap.val()){drawSeats(true);} // quiet — no announcement on auto-draw
         });
       } else if(Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';}).length&&!document.getElementById('seatGrid').querySelector('.seat-card')){
-        drawSeats();
+        drawSeats(true);
       }
     }
   }
