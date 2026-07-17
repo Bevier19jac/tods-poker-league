@@ -103,7 +103,7 @@
     .freeze-label{text-align:center;font-size:1.3rem;font-weight:800;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;margin:1.8rem auto 0;text-shadow:0 0 20px rgba(245,200,66,0.4)}
     /* WAVING BILL */
     .bill-wrap{position:relative;z-index:1;margin:1.2rem auto 0;text-align:center}
-    #billVideo{display:block;margin:0 auto;max-width:min(640px,92vw);height:auto;border-radius:4px;mix-blend-mode:screen;filter:drop-shadow(0 0 24px rgba(26,100,26,0.5))}
+    #billVideo{display:block;margin:0 auto;max-width:min(640px,92vw);height:auto;mix-blend-mode:screen;-webkit-mask-image:radial-gradient(ellipse 90% 85% at 50% 50%,black 40%,transparent 78%);mask-image:radial-gradient(ellipse 90% 85% at 50% 50%,black 40%,transparent 78%)}
   </style>
 </head>
 <body>
@@ -182,7 +182,7 @@
       <div class="sdb-div"></div>
       <div class="sdb-item"><span class="sdb-val">Peachtree City</span><span class="sdb-lbl">Location</span></div>
     </div>
-    <div class="freeze-label">$100 Buy-In &bull; Deepstack Freeze-Out</div>
+    <div class="freeze-label">$100 Buy-In &bull; Deepstack / Freeze-Out</div>
     <div class="bill-wrap">
       <video id="billVideo" autoplay muted loop playsinline>
         <source src="bill.mp4" type="video/mp4">
