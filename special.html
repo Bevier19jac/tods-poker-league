@@ -101,7 +101,7 @@
     .f-credit{font-size:0.63rem;color:var(--faint);letter-spacing:0.08em;margin-top:0.5rem}
     /* WAVING BILL */
     .bill-wrap{position:relative;z-index:1;margin:2rem auto 0;text-align:center}
-    #billCanvas{display:block;margin:0 auto;max-width:min(540px,88vw);height:auto;border-radius:3px;filter:drop-shadow(0 10px 36px rgba(0,0,0,0.65)) drop-shadow(0 0 20px rgba(26,100,26,0.25))}
+    #billVideo{display:block;margin:0 auto;max-width:min(400px,80vw);height:auto;border-radius:6px;filter:drop-shadow(0 12px 40px rgba(0,0,0,0.7)) drop-shadow(0 0 24px rgba(26,100,26,0.3))}
   </style>
 </head>
 <body>
@@ -181,7 +181,9 @@
       <div class="sdb-item"><span class="sdb-val">Peachtree City</span><span class="sdb-lbl">Location</span></div>
     </div>
     <div class="bill-wrap">
-      <canvas id="billCanvas"></canvas>
+      <video id="billVideo" autoplay muted loop playsinline>
+        <source src="bill.mp4" type="video/mp4">
+      </video>
     </div>
   </div>
 </section>
@@ -284,126 +286,159 @@ tick();setInterval(tick,1000);
 </script>
 
 <script>
-/* ── WAVING $100 BILL ── */
+/* Bill animation handled by bill.mp4 video */
 (function(){
   var cv=document.getElementById('billCanvas');if(!cv)return;
-  var BW=560,BH=226,AMP=18,CH=BH+AMP*2;
+  var BW=580,BH=234,AMP=16,CH=BH+AMP*2;
   cv.width=BW;cv.height=CH;
 
   var off=document.createElement('canvas');off.width=BW;off.height=BH;
   var o=off.getContext('2d');
+  var G='#1b5c1b';
 
   // Background
   var bg=o.createLinearGradient(0,0,BW,BH);
-  bg.addColorStop(0,'#e4e0c6');bg.addColorStop(0.5,'#eceaD2');bg.addColorStop(1,'#e0dcC2');
+  bg.addColorStop(0,'#dedad0');bg.addColorStop(0.5,'#e6e2d0');bg.addColorStop(1,'#dedad0');
   o.fillStyle=bg;o.fillRect(0,0,BW,BH);
 
   // Fine crosshatch texture
-  o.strokeStyle='rgba(26,100,26,0.055)';o.lineWidth=0.5;
-  for(var xi=0;xi<BW;xi+=5){o.beginPath();o.moveTo(xi,0);o.lineTo(xi,BH);o.stroke();}
-  for(var yi=0;yi<BH;yi+=5){o.beginPath();o.moveTo(0,yi);o.lineTo(BW,yi);o.stroke();}
-  o.strokeStyle='rgba(26,100,26,0.03)';
-  for(var di=-BH;di<BW;di+=9){o.beginPath();o.moveTo(di,0);o.lineTo(di+BH,BH);o.stroke();}
+  o.strokeStyle='rgba(27,92,27,0.055)';o.lineWidth=0.5;
+  for(var xi=0;xi<BW;xi+=6){o.beginPath();o.moveTo(xi,0);o.lineTo(xi,BH);o.stroke();}
+  for(var yi=0;yi<BH;yi+=6){o.beginPath();o.moveTo(0,yi);o.lineTo(BW,yi);o.stroke();}
+  o.strokeStyle='rgba(27,92,27,0.025)';
+  for(var di=-BH;di<BW;di+=10){o.beginPath();o.moveTo(di,0);o.lineTo(di+BH,BH);o.stroke();}
 
   // Borders
-  o.strokeStyle='#1a5c1a';o.lineWidth=5;o.strokeRect(5,5,BW-10,BH-10);
-  o.lineWidth=1;o.strokeRect(14,14,BW-28,BH-28);
-  o.strokeStyle='rgba(26,92,26,0.18)';o.lineWidth=0.5;
-  for(var b=16;b<=26;b+=2){o.strokeRect(b,b,BW-b*2,BH-b*2);}
+  o.strokeStyle=G;o.lineWidth=5;o.strokeRect(5,5,BW-10,BH-10);
+  o.lineWidth=1;o.strokeRect(13,13,BW-26,BH-26);
+  o.strokeStyle='rgba(27,92,27,0.2)';o.lineWidth=0.5;
+  for(var b=15;b<24;b+=2){o.strokeRect(b,b,BW-b*2,BH-b*2);}
 
   // Blue security thread
-  var tx=Math.round(BW*0.27);
-  o.fillStyle='rgba(25,65,200,0.2)';o.fillRect(tx,0,5,BH);
+  var tx=163;
+  o.fillStyle='rgba(25,65,200,0.22)';o.fillRect(tx,0,5,BH);
   o.save();o.translate(tx+2.5,BH*0.5);o.rotate(-Math.PI/2);
-  o.font='5px monospace';o.fillStyle='rgba(40,90,220,0.45)';o.textAlign='center';
-  o.fillText('USA100USA100USA100USA100USA100USA100',0,0);
-  o.restore();
+  o.font='5px monospace';o.fillStyle='rgba(40,90,210,0.42)';o.textAlign='center';
+  o.fillText('USA100USA100USA100USA100USA100USA100',0,0);o.restore();
 
   // Top text
-  o.fillStyle='#1a5c1a';o.textAlign='center';
-  o.font='bold '+Math.round(BH*0.072)+'px "Times New Roman",serif';
-  o.fillText('THE UNITED STATES OF AMERICA',BW/2,Math.round(BH*0.115));
-  o.font=Math.round(BH*0.054)+'px "Times New Roman",serif';
-  o.fillText('FEDERAL RESERVE NOTE',BW/2,Math.round(BH*0.19));
+  o.fillStyle=G;o.textAlign='center';
+  o.font='bold 14px "Times New Roman",serif';
+  o.fillText('THE UNITED STATES OF AMERICA',BW/2,24);
+  o.font='11px "Times New Roman",serif';
+  o.fillText('FEDERAL RESERVE NOTE',BW/2,38);
 
-  // Green Fed Reserve Seal (left)
-  var SR=Math.round(BH*0.19),SX=Math.round(BW*0.124),SY=Math.round(BH*0.52);
-  o.beginPath();o.arc(SX,SY,SR,0,Math.PI*2);o.fillStyle='#1a6c1a';o.fill();
-  o.beginPath();o.arc(SX,SY,SR*0.78,0,Math.PI*2);o.fillStyle='#e4e0c6';o.fill();
-  for(var a=0;a<36;a++){
-    var ang=a/36*Math.PI*2;
-    o.beginPath();o.moveTo(SX+SR*0.79*Math.cos(ang),SY+SR*0.79*Math.sin(ang));
-    o.lineTo(SX+SR*0.93*Math.cos(ang),SY+SR*0.93*Math.sin(ang));
-    o.strokeStyle='#1a6c1a';o.lineWidth=2.8;o.stroke();
+  // Federal Reserve Seal — SMALL, left side
+  var SX=93,SY=117,SR=21;
+  o.beginPath();o.arc(SX,SY,SR,0,Math.PI*2);o.fillStyle='#1b6c1b';o.fill();
+  for(var a=0;a<40;a++){
+    var ang=a/40*Math.PI*2;
+    o.beginPath();
+    o.moveTo(SX+SR*0.8*Math.cos(ang),SY+SR*0.8*Math.sin(ang));
+    o.lineTo(SX+SR*0.97*Math.cos(ang),SY+SR*0.97*Math.sin(ang));
+    o.strokeStyle='#1b6c1b';o.lineWidth=2.2;o.stroke();
   }
-  o.font='bold '+Math.round(SR*0.88)+'px "Times New Roman",serif';
-  o.fillStyle='#1a6c1a';o.textAlign='center';
-  o.fillText('B',SX,SY+Math.round(SR*0.33));
+  o.beginPath();o.arc(SX,SY,SR*0.76,0,Math.PI*2);o.fillStyle='#dedad0';o.fill();
+  o.fillStyle='#1b6c1b';o.font='bold 17px "Times New Roman",serif';o.textAlign='center';
+  o.fillText('B',SX,SY+6);
 
-  // Portrait oval
-  var PX=Math.round(BW*0.385),PY=Math.round(BH*0.515);
-  var PRX=Math.round(BW*0.155),PRY=Math.round(BH*0.37);
+  // Portrait oval — authentic green-ink engraving style
+  var PX=222,PY=117,PRX=84,PRY=82;
   o.beginPath();o.ellipse(PX,PY,PRX,PRY,0,0,Math.PI*2);
-  o.fillStyle='#ccc8a5';o.fill();
-  o.strokeStyle='#1a5c1a';o.lineWidth=2;o.stroke();
-  o.strokeStyle='rgba(26,92,26,0.28)';o.lineWidth=0.8;
-  o.beginPath();o.ellipse(PX,PY,PRX-4,PRY-4,0,0,Math.PI*2);o.stroke();
+  o.fillStyle='#2e6030';o.fill();  // dark green base (like real currency ink)
+  o.strokeStyle=G;o.lineWidth=2;o.stroke();
+  o.strokeStyle='rgba(27,92,27,0.4)';o.lineWidth=0.8;
+  o.beginPath();o.ellipse(PX,PY,PRX-5,PRY-5,0,0,Math.PI*2);o.stroke();
 
-  // Franklin silhouette
-  o.fillStyle='#d5ccb2';// wig
-  o.beginPath();o.ellipse(PX,PY-PRY*0.04,PRX*0.52,PRY*0.52,0,0,Math.PI*2);o.fill();
-  o.fillStyle='#c4a078';// face
-  o.beginPath();o.ellipse(PX,PY,PRX*0.36,PRY*0.41,0,0,Math.PI*2);o.fill();
-  o.fillStyle='rgba(100,65,25,0.22)';// face shading
-  o.beginPath();o.ellipse(PX+PRX*0.09,PY+PRY*0.06,PRX*0.18,PRY*0.2,0,0,Math.PI*2);o.fill();
-  o.fillStyle='#1e1608';// dark coat
+  // Clip to oval and draw engraving portrait
+  o.save();
+  o.beginPath();o.ellipse(PX,PY,PRX-3,PRY-3,0,0,Math.PI*2);o.clip();
+
+  // Coat — very dark, lower 40% of oval
+  var CT=PY+PRY*0.28;
+  o.fillStyle='#0a1a0a';
   o.beginPath();
-  o.moveTo(PX-PRX*0.9,PY+PRY*0.95);
-  o.bezierCurveTo(PX-PRX*0.55,PY+PRY*0.22,PX-PRX*0.3,PY+PRY*0.28,PX,PY+PRY*0.3);
-  o.bezierCurveTo(PX+PRX*0.3,PY+PRY*0.28,PX+PRX*0.55,PY+PRY*0.22,PX+PRX*0.9,PY+PRY*0.95);
+  o.moveTo(PX-PRX,PY+PRY);
+  o.bezierCurveTo(PX-PRX*0.65,CT,PX-PRX*0.32,CT+4,PX-PRX*0.14,CT+10);
+  o.lineTo(PX,CT+18);
+  o.lineTo(PX+PRX*0.14,CT+10);
+  o.bezierCurveTo(PX+PRX*0.32,CT+4,PX+PRX*0.65,CT,PX+PRX,PY+PRY);
   o.fill();
-  o.fillStyle='#e4e0c6';// white collar
-  o.beginPath();o.moveTo(PX-PRX*0.16,PY+PRY*0.14);o.lineTo(PX,PY+PRY*0.3);o.lineTo(PX+PRX*0.16,PY+PRY*0.14);o.closePath();o.fill();
 
-  o.fillStyle='#1a5c1a';o.font=Math.round(BH*0.044)+'px "Times New Roman",serif';o.textAlign='center';
-  o.fillText('FRANKLIN',PX,PY+PRY+Math.round(BH*0.046));
+  // Cravat/collar — cream triangle
+  o.fillStyle='rgba(218,212,185,0.9)';
+  o.beginPath();
+  o.moveTo(PX-PRX*0.13,CT+2);
+  o.lineTo(PX,CT+20);
+  o.lineTo(PX+PRX*0.13,CT+2);
+  o.closePath();o.fill();
 
-  // Large corner "100"
-  o.fillStyle='#1a5c1a';
-  o.font='bold '+Math.round(BH*0.27)+'px "Times New Roman",serif';
-  o.textAlign='left';o.fillText('100',Math.round(BW*0.025),Math.round(BH*0.38));
-  o.textAlign='right';o.fillText('100',Math.round(BW*0.975),Math.round(BH*0.38));
+  // Wig — lighter green (hair, upper portion)
+  o.fillStyle='#4a8c4e';
+  o.beginPath();o.ellipse(PX,PY-PRY*0.1,PRX*0.52,PRY*0.52,0,0,Math.PI*2);o.fill();
 
-  // Serial numbers
-  o.fillStyle='#2a7c2a';
-  o.font='bold '+Math.round(BH*0.063)+'px "Courier New",monospace';
-  o.textAlign='left';o.fillText('MB 20260725 A',Math.round(BW*0.04),Math.round(BH*0.625));
-  o.textAlign='right';o.fillText('MB 20260725 A',Math.round(BW*0.97),Math.round(BH*0.875));
+  // Face — slightly lighter green oval
+  o.fillStyle='#3a7a3e';
+  o.beginPath();o.ellipse(PX,PY+PRY*0.04,PRX*0.34,PRY*0.41,0,0,Math.PI*2);o.fill();
 
-  // Big copper "100" (anti-counterfeiting numeral)
-  o.font='bold '+Math.round(BH*0.42)+'px "Times New Roman",serif';
-  o.fillStyle='rgba(138,94,16,0.82)';
+  // Face highlight — lighter left side (light source from left)
+  o.fillStyle='#52965a';
+  o.beginPath();o.ellipse(PX-PRX*0.1,PY-PRY*0.06,PRX*0.18,PRY*0.22,0,0,Math.PI*2);o.fill();
+
+  // Eye sockets — two small dark marks
+  o.fillStyle='rgba(5,20,5,0.7)';
+  o.beginPath();o.ellipse(PX-PRX*0.11,PY-PRY*0.08,3.5,2.5,0,0,Math.PI*2);o.fill();
+  o.beginPath();o.ellipse(PX+PRX*0.06,PY-PRY*0.08,3.5,2.5,0,0,Math.PI*2);o.fill();
+
+  // Engraving lines — fine horizontal lines at varying density = authentic look
+  for(var ey=PY-PRY+5;ey<PY+PRY-5;ey+=2.2){
+    var dy=ey-PY;
+    var ew=PRX*Math.sqrt(Math.max(0,1-(dy/PRY)*(dy/PRY)));
+    var ny=(ey-PY)/PRY;
+    // Vary line darkness by zone (coat=darkest, forehead=lightest)
+    var al=ny>0.3?0.5:ny>0.1?0.2:ny<-0.45?0.25:ny<-0.1?0.12:0.2;
+    o.beginPath();o.moveTo(PX-ew,ey);o.lineTo(PX+ew,ey);
+    o.strokeStyle='rgba(5,15,5,'+al+')';o.lineWidth=0.8;o.stroke();
+  }
+  o.restore();
+
+  // "FRANKLIN" label below oval
+  o.fillStyle=G;o.font='italic 10px "Times New Roman",serif';o.textAlign='center';
+  o.fillText('FRANKLIN',PX,PY+PRY+12);
+
+  // Corner "100" — upper left & right
+  o.fillStyle=G;o.font='bold 52px "Times New Roman",serif';
+  o.textAlign='left';o.fillText('100',22,92);
+  o.textAlign='right';o.fillText('100',BW-22,92);
+
+  // Serial numbers (green monospace)
+  o.fillStyle='#2c7c2c';o.font='bold 12px "Courier New",monospace';
+  o.textAlign='left';o.fillText('MB 20260725 A',26,136);
+  o.textAlign='right';o.fillText('MB 20260725 A',BW-26,196);
+
+  // Large copper/gold "100" — bottom right (color-shifting numeral)
+  o.font='bold 78px "Times New Roman",serif';
+  o.fillStyle='rgba(134,88,12,0.86)';
   o.textAlign='right';
-  o.fillText('100',Math.round(BW*0.975),Math.round(BH*0.955));
+  o.fillText('100',BW-18,210);
 
   // Bottom title
-  o.fillStyle='#1a5c1a';
-  o.font='bold '+Math.round(BH*0.065)+'px "Times New Roman",serif';
+  o.fillStyle=G;o.font='bold 13px "Times New Roman",serif';
   o.textAlign='center';
-  o.fillText('ONE HUNDRED DOLLARS',BW/2,Math.round(BH*0.965));
+  o.fillText('ONE HUNDRED DOLLARS',BW/2,222);
 
   /* Wave animation */
   var ctx2=cv.getContext('2d');
-  var phase=0,FREQ=0.013,SPD=0.046,SW=2;
+  var phase=0,FREQ=0.012,SPD=0.044,SW=2;
   function frame(){
     ctx2.clearRect(0,0,BW,CH);
     for(var x=0;x<BW;x+=SW){
       var w=Math.sin(phase+x*FREQ);
       ctx2.drawImage(off,x,0,SW,BH,x,AMP+AMP*w,SW,BH);
     }
-    // Lighting overlay
+    // Light/shadow overlay following wave
     for(var x2=0;x2<BW;x2+=SW){
-      var wl=Math.sin(phase+x2*FREQ)*0.11;
+      var wl=Math.sin(phase+x2*FREQ)*0.1;
       ctx2.fillStyle=wl>0?'rgba(255,255,255,'+wl.toFixed(3)+')':'rgba(0,0,0,'+((-wl).toFixed(3))+')';
       ctx2.fillRect(x2,AMP+AMP*Math.sin(phase+x2*FREQ),SW,BH);
     }
