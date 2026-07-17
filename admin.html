@@ -381,11 +381,11 @@
 // ══════════════════════════
 var db, auth;
 try {
-  db   = firebase.database();
-  auth = firebase.auth();
+  db = firebase.database();
 } catch(e) {
   document.getElementById('firebase-warning').style.display = 'block';
 }
+try { auth = firebase.auth ? firebase.auth() : null; } catch(e) { auth = null; }
 
 // ══════════════════════════
 //  HELPERS

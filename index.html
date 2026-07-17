@@ -452,7 +452,22 @@
 </footer>
 
 <script>
-var L=LEAGUE,ng=L.nextGame;
+var L=LEAGUE;
+// Auto-advance ng: if nextGame date is in the past (after 8PM game time), find next upcoming event from schedule
+(function(){
+  var cfg=L.nextGame;
+  var gameEnd=new Date(cfg.date+'T20:30:00'); // treat game as "done" 30 min after start
+  if(new Date()>gameEnd){
+    var future=(L.schedule||[]).filter(function(ev){
+      return !ev.completed && new Date(ev.date+'T20:00:00')>new Date();
+    });
+    if(future.length){
+      cfg=Object.assign({},L.nextGame,{date:future[0].date,label:future[0].label});
+    }
+  }
+  window._ng=cfg;
+})();
+var ng=window._ng||L.nextGame;
 
 // ── CHIP COLORS ──
 var CHIP_COLORS=[
@@ -588,6 +603,30 @@ function updateSeatBtn(){
 var fbKey='rsvp_'+ng.date.replace(/-/g,'_');
 var fbStatuses={};var fbLive=false;
 function loadLocal(){try{var s=localStorage.getItem('tpl_rsvp_'+fbKey);fbStatuses=s?JSON.parse(s):{};}catch(e){fbStatuses={};}}
+
+// ── AUTO-RESET RSVPs AT 8PM ON GAME NIGHT ──
+(function(){
+  var p=ng.date.split('-').map(Number);
+  var gameStart=new Date(p[0],p[1]-1,p[2],20,0,0);
+  function checkAutoReset(){
+    var now=new Date();
+    var isGameNight=(now.getFullYear()===gameStart.getFullYear()&&now.getMonth()===gameStart.getMonth()&&now.getDate()===gameStart.getDate());
+    if(isGameNight&&now>=gameStart){
+      if(fbLive&&window._firebaseReady){
+        try{
+          firebase.database().ref(fbKey).once('value',function(snap){
+            // Only auto-clear if there's actually data (prevents repeated clears)
+            if(snap.val()){
+              firebase.database().ref(fbKey).remove();
+            }
+          });
+        }catch(e){}
+      }
+      try{localStorage.removeItem('tpl_rsvp_'+fbKey);}catch(e){}
+    }
+  }
+  setInterval(checkAutoReset,60000);
+})();
 
 // ── INIT: load from localStorage immediately so grid shows on page load ──
 loadLocal();

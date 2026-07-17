@@ -133,8 +133,8 @@ const LEAGUE = {
   ],
 
   nextGame: {
-    date:      "2026-07-16",
-    label:     "Event 12",
+    date:      "2026-07-25",
+    label:     "Mid-Season Tournament",
     time:      "8:00 PM",
     location:  "Tod's",
     buyin:     40,        // $40 = 6,000 chips; rebuy by break = +6,000 chips
