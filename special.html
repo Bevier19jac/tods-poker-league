@@ -102,8 +102,15 @@
     /* FREEZE-OUT LABEL */
     .freeze-label{text-align:center;font-size:1.3rem;font-weight:800;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;margin:1.8rem auto 0;text-shadow:0 0 20px rgba(245,200,66,0.4)}
     /* WAVING BILL */
+    @keyframes billWave{
+      0%  {transform:perspective(900px) rotateX(2deg) rotateY(-5deg) rotateZ(-0.5deg) scale(1.00)}
+      25% {transform:perspective(900px) rotateX(-3deg) rotateY(6deg) rotateZ(0.8deg) scale(1.02)}
+      50% {transform:perspective(900px) rotateX(4deg) rotateY(-4deg) rotateZ(-0.3deg) scale(0.99)}
+      75% {transform:perspective(900px) rotateX(-2deg) rotateY(5deg) rotateZ(0.6deg) scale(1.01)}
+      100%{transform:perspective(900px) rotateX(2deg) rotateY(-5deg) rotateZ(-0.5deg) scale(1.00)}
+    }
     .bill-wrap{position:relative;z-index:1;margin:1.2rem auto 0;text-align:center}
-    #billVideo{display:block;margin:0 auto;max-width:min(640px,92vw);height:auto;mix-blend-mode:screen;-webkit-mask-image:radial-gradient(ellipse 90% 85% at 50% 50%,black 40%,transparent 78%);mask-image:radial-gradient(ellipse 90% 85% at 50% 50%,black 40%,transparent 78%)}
+    #billImg{display:block;margin:0 auto;max-width:min(600px,90vw);height:auto;border-radius:3px;animation:billWave 3.8s ease-in-out infinite;filter:drop-shadow(0 24px 60px rgba(0,0,0,0.95)) drop-shadow(0 0 40px rgba(20,80,20,0.5));-webkit-mask-image:radial-gradient(ellipse 92% 82% at 50% 50%,black 52%,transparent 82%);mask-image:radial-gradient(ellipse 92% 82% at 50% 50%,black 52%,transparent 82%)}
   </style>
 </head>
 <body>
@@ -184,9 +191,7 @@
     </div>
     <div class="freeze-label">$100 Buy-In &bull; Deepstack / Freeze-Out</div>
     <div class="bill-wrap">
-      <video id="billVideo" autoplay muted loop playsinline>
-        <source src="bill.mp4" type="video/mp4">
-      </video>
+      <img id="billImg" src="bill_photo.jpg" alt="$100 Bill">
     </div>
   </div>
 </section>
