@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Game Night — Ardenlee Poker League</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+<style>
+:root{
+  --gold:#f5c842;--gold2:#e8a800;
+  --dark:#080810;--dark2:#0e0e1a;--card:#111122;
+  --border:rgba(245,200,66,0.12);
+  --text:#f0f0f8;--dim:#8888aa;--faint:#3a3a55;
+  --red:#ef4444;--green:#22c55e;--amber:#f59e0b;--blue:#3b82f6;
+  --panel:#13131f;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--dark);color:var(--text);font-family:'Inter',sans-serif;display:flex;flex-direction:column;min-height:100vh}
+button{cursor:pointer;font-family:'Inter',sans-serif}
+
+/* ── TOP NAV ── */
+.top-nav{background:var(--dark2);border-bottom:1px solid var(--border);padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0}
+.nav-brand{color:var(--gold);font-weight:700;font-size:0.9rem;text-decoration:none}
+.nav-home{color:var(--dim);font-size:0.75rem;text-decoration:none;margin-right:0.8rem}
+.nav-home:hover{color:var(--gold)}
+.nav-badges{display:flex;gap:0.4rem;align-items:center}
+.badge{font-size:0.65rem;padding:0.18rem 0.55rem;border-radius:10px;font-weight:700;letter-spacing:0.04em}
+.badge-tod{background:rgba(245,200,66,0.15);color:var(--gold);border:1px solid rgba(245,200,66,0.3);display:none}
+.badge-tv{background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);display:none}
+.badge-live{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+
+/* ── TABS ── */
+.tab-bar{background:var(--dark2);border-bottom:1px solid var(--border);display:flex;flex-shrink:0}
+.tab-btn{flex:1;background:none;border:none;border-bottom:3px solid transparent;color:var(--dim);font-size:0.78rem;font-weight:600;padding:0.7rem 0.3rem;cursor:pointer;transition:all 0.2s;letter-spacing:0.02em;display:flex;align-items:center;justify-content:center;gap:0.3rem}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab-btn:hover:not(.active){color:var(--text)}
+
+/* ── TAB CONTENT ── */
+.tab-pane{display:none;flex:1;overflow-y:auto}
+.tab-pane.active{display:flex;flex-direction:column}
+
+/* ═══════════════════════════════════════════════
+   TIMER TAB
+═══════════════════════════════════════════════ */
+.timer-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem;gap:0;text-align:center}
+.level-label{font-size:0.7rem;letter-spacing:0.35em;text-transform:uppercase;color:var(--dim);margin-bottom:0.2rem}
+.level-num{font-family:'JetBrains Mono',monospace;font-size:2.4rem;font-weight:800;color:var(--gold);line-height:1;margin-bottom:1rem}
+.blinds-row{display:flex;align-items:baseline;gap:0.4rem;margin-bottom:0.3rem}
+.blind-val{font-family:'JetBrains Mono',monospace;font-size:2.8rem;font-weight:800;color:var(--text);line-height:1}
+.blind-sep{font-size:2rem;color:var(--faint);font-weight:300}
+.ante-row{font-size:0.8rem;color:var(--dim);margin-bottom:1.2rem}
+.ante-row span{color:var(--gold);font-weight:600}
+.countdown{font-family:'JetBrains Mono',monospace;font-size:6.5rem;font-weight:800;line-height:1;letter-spacing:-0.02em;color:var(--green);transition:color 0.4s;margin-bottom:0.8rem}
+.countdown.warn{color:var(--amber)}
+.countdown.danger{color:var(--red)}
+.countdown.stopped{color:var(--faint)}
+.progress-wrap{width:min(480px,88vw);height:5px;background:rgba(255,255,255,0.06);border-radius:3px;margin-bottom:1rem;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.5s linear,background 0.5s}
+.next-level-txt{font-size:0.75rem;color:var(--dim)}
+.next-level-txt span{color:var(--text);font-weight:600}
+.timer-status-msg{font-size:0.8rem;color:var(--faint);margin-top:0.5rem}
+.no-structure-msg{text-align:center;padding:2rem 1rem}
+.no-structure-msg h3{color:var(--gold);margin-bottom:0.5rem;font-size:1.1rem}
+.no-structure-msg p{color:var(--dim);font-size:0.85rem;margin-bottom:1.5rem}
+
+/* ADMIN CONTROLS */
+.admin-bar{background:var(--dark2);border-top:1px solid var(--border);padding:0.9rem 1rem;display:none;flex-direction:column;align-items:center;gap:0.65rem;flex-shrink:0}
+.admin-bar.visible{display:flex}
+.admin-main{display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap;justify-content:center}
+.admin-sub{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:center}
+.btn{display:inline-flex;align-items:center;gap:0.35rem;border:none;border-radius:10px;font-weight:700;transition:all 0.2s;padding:0.65rem 1.3rem;font-size:0.85rem}
+.btn-start{background:var(--green);color:#000}
+.btn-start:hover{opacity:0.85}
+.btn-pause{background:var(--amber);color:#000}
+.btn-pause:hover{opacity:0.85}
+.btn-resume{background:var(--green);color:#000}
+.btn-resume:hover{opacity:0.85}
+.btn-level{background:rgba(255,255,255,0.07);color:var(--text);border:1px solid rgba(255,255,255,0.1)}
+.btn-level:hover{background:rgba(255,255,255,0.13)}
+.btn-outline{background:transparent;color:var(--dim);border:1px solid rgba(255,255,255,0.1);font-size:0.75rem;padding:0.4rem 0.9rem}
+.btn-outline:hover{color:var(--gold);border-color:var(--gold)}
+.btn-gold{background:var(--gold);color:#000}
+.btn-gold:hover{background:var(--gold2)}
+.btn-danger{background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25);font-size:0.72rem;padding:0.35rem 0.75rem}
+.btn-danger:hover{background:rgba(239,68,68,0.22)}
+.btn-green-soft{background:rgba(34,197,94,0.12);color:#4ade80;border:1px solid rgba(34,197,94,0.25)}
+.btn-green-soft:hover{background:rgba(34,197,94,0.22)}
+.btn-sm{padding:0.4rem 0.85rem;font-size:0.78rem;border-radius:8px}
+.btn-xs{padding:0.28rem 0.6rem;font-size:0.7rem;border-radius:6px}
+
+/* ═══════════════════════════════════════════════
+   PLAYERS TAB
+═══════════════════════════════════════════════ */
+.players-header{padding:1rem 1rem 0.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
+.players-title{font-weight:700;color:var(--gold);font-size:0.9rem}
+.players-stats{display:flex;gap:0.8rem;font-size:0.75rem;color:var(--dim)}
+.players-stats span{color:var(--text);font-weight:700}
+.players-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.6rem;padding:0.5rem 1rem 1rem}
+.player-card{background:var(--card);border:1px solid rgba(245,200,66,0.1);border-radius:12px;padding:0.75rem;cursor:pointer;transition:all 0.2s;position:relative}
+.player-card.active{border-color:rgba(34,197,94,0.35);background:rgba(34,197,94,0.05)}
+.player-card.active:hover{border-color:rgba(34,197,94,0.6)}
+.player-card.out{border-color:rgba(239,68,68,0.25);background:rgba(239,68,68,0.04);cursor:default;opacity:0.65}
+.player-card.winner{border-color:var(--gold);background:rgba(245,200,66,0.08);cursor:default}
+.player-card.winner::after{content:'🏆';position:absolute;top:0.4rem;right:0.5rem;font-size:1rem}
+.pc-name{font-size:0.88rem;font-weight:700;color:var(--text);margin-bottom:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-status{font-size:0.72rem;font-weight:600;letter-spacing:0.04em}
+.pc-status.in{color:#4ade80}
+.pc-status.out{color:#f87171}
+.pc-status.winner{color:var(--gold)}
+.pc-place{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--dim);margin-top:0.15rem}
+.bust-btn{position:absolute;bottom:0.4rem;right:0.4rem;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;font-size:0.62rem;font-weight:700;padding:0.15rem 0.4rem;cursor:pointer}
+.bust-btn:hover{background:rgba(239,68,68,0.3)}
+.players-empty{padding:2rem;text-align:center;color:var(--faint);font-size:0.85rem}
+/* Bust input row */
+.bust-form{display:none;background:rgba(239,68,68,0.06);border-top:1px solid rgba(239,68,68,0.15);padding:0.5rem;margin-top:0.5rem;border-radius:0 0 8px 8px}
+.bust-form.open{display:block}
+.bust-form label{font-size:0.65rem;color:var(--dim);display:block;margin-bottom:0.25rem}
+.bust-form select{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--text);font-size:0.8rem;padding:0.3rem 0.4rem;outline:none}
+.bust-form select:focus{border-color:var(--red)}
+.bust-form-btns{display:flex;gap:0.4rem;margin-top:0.4rem}
+
+/* ═══════════════════════════════════════════════
+   PAYOUTS TAB
+═══════════════════════════════════════════════ */
+.payout-wrap{padding:1rem;max-width:680px;margin:0 auto;width:100%}
+.payout-section{margin-bottom:1.5rem}
+.section-hd{font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border);padding-bottom:0.4rem;margin-bottom:0.9rem}
+.payout-inputs{display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;margin-bottom:1rem}
+@media(max-width:420px){.payout-inputs{grid-template-columns:1fr}}
+.fi{display:flex;flex-direction:column;gap:0.3rem}
+.fi label{font-size:0.7rem;color:var(--dim);letter-spacing:0.04em}
+.fi input,.fi select{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.9rem;padding:0.5rem 0.65rem;outline:none;width:100%}
+.fi input:focus,.fi select:focus{border-color:var(--gold)}
+.payout-table{width:100%;border-collapse:collapse;font-size:0.83rem}
+.payout-table th{text-align:left;padding:0.4rem 0.6rem;font-size:0.65rem;color:var(--dim);letter-spacing:0.06em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.payout-table td{padding:0.55rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04)}
+.payout-table tr:last-child td{border-bottom:none}
+.payout-table tr.itm td{color:var(--gold)}
+.payout-table tr.winner-row td{color:var(--gold);font-weight:700}
+.cash-cell{font-family:'JetBrains Mono',monospace;color:var(--green)}
+.pts-cell{font-family:'JetBrains Mono',monospace;color:var(--gold)}
+.place-cell{font-family:'JetBrains Mono',monospace;color:var(--dim)}
+.pot-summary{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0.9rem 1rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem}
+.pot-item{text-align:center}
+.pot-label{font-size:0.65rem;color:var(--dim);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:0.15rem}
+.pot-val{font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:800;color:var(--gold)}
+
+/* ═══════════════════════════════════════════════
+   MODALS
+═══════════════════════════════════════════════ */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:1.4rem;width:100%;max-width:660px;margin:auto}
+.modal-title{font-size:1rem;font-weight:700;color:var(--gold);margin-bottom:1.2rem}
+.structure-table{width:100%;border-collapse:collapse;margin-bottom:1rem}
+.structure-table th{color:var(--dim);text-align:left;padding:0.3rem 0.4rem;font-size:0.65rem;letter-spacing:0.05em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.structure-table td{padding:0.3rem 0.35rem;border-bottom:1px solid rgba(255,255,255,0.03)}
+.lvl-n{color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-align:center;padding:0 0.3rem}
+.structure-table input{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.82rem;padding:0.35rem 0.45rem;width:75px;text-align:right;outline:none}
+.structure-table input:focus{border-color:var(--gold)}
+.structure-table input.w-min{width:55px}
+.btn-del{background:none;border:none;color:var(--faint);cursor:pointer;font-size:0.85rem;padding:0.2rem 0.5rem;border-radius:4px;transition:color 0.2s}
+.btn-del:hover{color:var(--red)}
+.modal-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.7rem;margin-top:1rem}
+.btn-add{background:rgba(245,200,66,0.1);color:var(--gold);border:1px solid rgba(245,200,66,0.2);border-radius:8px;padding:0.45rem 0.9rem;font-size:0.78rem;font-weight:700;cursor:pointer}
+.btn-add:hover{background:rgba(245,200,66,0.2)}
+.modal-actions{display:flex;gap:0.6rem}
+.btn-cancel{background:transparent;color:var(--dim);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:0.5rem 1rem;font-size:0.82rem;cursor:pointer}
+.btn-cancel:hover{color:var(--text)}
+.btn-save{background:var(--gold);color:#000;border:none;border-radius:8px;padding:0.55rem 1.4rem;font-size:0.88rem;font-weight:700;cursor:pointer}
+.btn-save:hover{background:var(--gold2)}
+
+/* ═══════════════════════════════════════════════
+   WINNER OVERLAY
+═══════════════════════════════════════════════ */
+.winner-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:2000;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem}
+.winner-overlay.show{display:flex}
+.winner-trophy{font-size:5rem;margin-bottom:0.5rem;animation:trophy-bounce 0.8s ease-in-out infinite alternate}
+@keyframes trophy-bounce{from{transform:scale(1)}to{transform:scale(1.12)}}
+.winner-title{font-size:1rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--dim);margin-bottom:0.3rem}
+.winner-name{font-family:'Playfair Display',serif;font-size:3.5rem;font-weight:700;color:var(--gold);line-height:1;margin-bottom:1.5rem;text-shadow:0 0 40px rgba(245,200,66,0.5)}
+.winner-stats{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:center;margin-bottom:2rem}
+.ws-item{text-align:center}
+.ws-label{font-size:0.7rem;color:var(--dim);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.2rem}
+.ws-val{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:800;color:var(--text)}
+.winner-confetti{position:fixed;pointer-events:none;top:0;left:0;width:100%;height:100%}
+.close-winner{margin-top:1rem;background:transparent;border:1px solid rgba(255,255,255,0.2);color:var(--dim);border-radius:10px;padding:0.6rem 1.5rem;font-size:0.8rem;cursor:pointer}
+.close-winner:hover{color:var(--text)}
+
+/* ═══════════════════════════════════════════════
+   TV MODE (body.tv)
+═══════════════════════════════════════════════ */
+body.tv .top-nav{display:none}
+body.tv .tab-bar{display:none}
+body.tv #tab-timer{display:flex!important}
+body.tv .admin-bar{display:none!important}
+body.tv .timer-main{padding:3rem 2rem}
+body.tv .level-label{font-size:1rem;letter-spacing:0.4em}
+body.tv .level-num{font-size:4rem;margin-bottom:1.5rem}
+body.tv .blind-val{font-size:5rem}
+body.tv .blind-sep{font-size:3.5rem}
+body.tv .ante-row{font-size:1rem;margin-bottom:2rem}
+body.tv .countdown{font-size:11rem}
+body.tv .progress-wrap{height:7px;width:min(700px,90vw);margin-bottom:1.5rem}
+body.tv .next-level-txt{font-size:1rem}
+.tv-footer{display:none;position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);font-size:0.7rem;color:var(--faint);letter-spacing:0.2em;text-transform:uppercase}
+body.tv .tv-footer{display:block}
+
+/* TOAST */
+.toast{position:fixed;bottom:4.5rem;left:50%;transform:translateX(-50%) translateY(8px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0.5rem 1.2rem;font-size:0.8rem;color:var(--text);opacity:0;pointer-events:none;transition:opacity 0.3s,transform 0.3s;z-index:900;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* LEVEL UP overlay */
+.levelup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:800;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;cursor:pointer}
+.levelup-overlay.show{display:flex}
+.levelup-icon{font-size:4rem;margin-bottom:0.5rem}
+.levelup-title{color:var(--gold);font-size:2.5rem;font-weight:800;margin-bottom:0.5rem}
+.levelup-blinds{color:var(--text);font-family:'JetBrains Mono',monospace;font-size:1.8rem;font-weight:700;margin-bottom:0.3rem}
+.levelup-ante{color:var(--dim);font-size:0.9rem;margin-bottom:1.2rem}
+.levelup-auto{color:var(--dim);font-size:0.85rem}
+.levelup-auto span{color:var(--amber);font-weight:700}
+
+@media(max-width:400px){
+  .countdown{font-size:5rem}
+  .blind-val{font-size:2.2rem}
+  .level-num{font-size:2rem}
+  .players-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav class="top-nav" id="topNav">
+  <div style="display:flex;align-items:center;gap:0.7rem">
+    <a href="index.html" class="nav-home">← Home</a>
+    <span class="nav-brand">♠ Game Night</span>
+  </div>
+  <div class="nav-badges">
+    <span class="badge badge-live" id="badgeLive" style="display:none">● LIVE</span>
+    <span class="badge badge-tod" id="badgeTod">Tod ★</span>
+    <span class="badge badge-tv" id="badgeTV">TV</span>
+  </div>
+</nav>
+
+<!-- ── TABS ── -->
+<div class="tab-bar" id="tabBar">
+  <button class="tab-btn active" onclick="switchTab('timer')" id="tab-btn-timer">⏱ Timer</button>
+  <button class="tab-btn" onclick="switchTab('players')" id="tab-btn-players">👥 Players</button>
+  <button class="tab-btn" onclick="switchTab('payouts')" id="tab-btn-payouts">💰 Payouts</button>
+</div>
+
+<!-- ════════════════════════════
+     TIMER TAB
+════════════════════════════ -->
+<div class="tab-pane active" id="tab-timer">
+
+  <!-- No structure state -->
+  <div class="no-structure-msg" id="noStructMsg" style="display:none">
+    <h3>No blind structure yet</h3>
+    <p id="noStructText">Tod needs to set up the blind levels before the game starts.</p>
+    <button class="btn btn-gold btn-sm" id="noStructBtn" onclick="openEditModal()" style="display:none;margin:0 auto">⚙️ Set Up Blind Structure</button>
+  </div>
+
+  <!-- Timer display -->
+  <div class="timer-main" id="timerContent">
+    <div class="level-label">LEVEL</div>
+    <div class="level-num" id="dispLevel">—</div>
+    <div class="blinds-row">
+      <span class="blind-val" id="dispSmall">—</span>
+      <span class="blind-sep">/</span>
+      <span class="blind-val" id="dispBig">—</span>
+    </div>
+    <div class="ante-row" id="dispAnteRow" style="display:none">Ante: <span id="dispAnte">—</span></div>
+    <div class="countdown stopped" id="dispCountdown">—:——</div>
+    <div class="progress-wrap"><div class="progress-fill" id="dispProgress" style="width:100%"></div></div>
+    <div class="next-level-txt" id="dispNext"></div>
+    <div class="timer-status-msg" id="dispStatus"></div>
+  </div>
+
+  <!-- Admin bar (Tod only) -->
+  <div class="admin-bar" id="adminBar">
+    <div class="admin-main">
+      <button class="btn btn-level btn-sm" onclick="prevLevel()">⏮ Prev</button>
+      <button class="btn btn-start" onclick="startTimer()" id="btnStart">▶ Start</button>
+      <button class="btn btn-pause" onclick="pauseTimer()" id="btnPause" style="display:none">⏸ Pause</button>
+      <button class="btn btn-resume" onclick="resumeTimer()" id="btnResume" style="display:none">▶ Resume</button>
+      <button class="btn btn-level btn-sm" onclick="nextLevel()">Next ⏭</button>
+    </div>
+    <div class="admin-sub">
+      <button class="btn btn-outline" onclick="openEditModal()">⚙️ Blind Structure</button>
+      <button class="btn btn-outline" onclick="openTVMode()">📺 TV Display</button>
+      <button class="btn btn-outline" onclick="toggleCommentary()">🎤 <span id="commentaryLabel">Commentary ON</span></button>
+      <button class="btn btn-danger btn-xs" onclick="resetTimer()">↺ Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════
+     PLAYERS TAB
+════════════════════════════ -->
+<div class="tab-pane" id="tab-players">
+  <div class="players-header">
+    <div class="players-title">🃏 Live Player Tracking</div>
+    <div class="players-stats">Still In: <span id="statsIn">—</span> &nbsp; Out: <span id="statsOut">—</span></div>
+  </div>
+  <div class="players-grid" id="playersGrid">
+    <div class="players-empty">Loading players...</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════
+     PAYOUTS TAB
+════════════════════════════ -->
+<div class="tab-pane" id="tab-payouts">
+  <div class="payout-wrap">
+
+    <!-- Settings (Tod only, or always visible if set) -->
+    <div id="payoutSettingsSection" class="payout-section">
+      <div class="section-hd">Tournament Settings</div>
+      <div class="payout-inputs">
+        <div class="fi"><label>Buy-In ($)</label><input type="number" id="pBuyIn" value="100" min="0" onchange="calcPayouts()"></div>
+        <div class="fi"><label>Starting Players</label><input type="number" id="pPlayers" value="10" min="1" onchange="calcPayouts()"></div>
+        <div class="fi"><label>Rebuys</label><input type="number" id="pRebuys" value="0" min="0" onchange="calcPayouts()"></div>
+        <div class="fi"><label>Rebuy Amount ($)</label><input type="number" id="pRebuyAmt" value="100" min="0" onchange="calcPayouts()"></div>
+        <div class="fi"><label>Places Paid</label>
+          <select id="pPaidPlaces" onchange="calcPayouts()">
+            <option value="1">1 place</option>
+            <option value="2">2 places</option>
+            <option value="3" selected>3 places</option>
+            <option value="4">4 places</option>
+            <option value="5">5 places</option>
+          </select>
+        </div>
+        <div class="fi"><label>Payout Split</label>
+          <select id="pSplit" onchange="calcPayouts()">
+            <option value="auto">Auto (standard %)</option>
+            <option value="custom">Custom per place</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+        <button class="btn btn-gold btn-sm" onclick="savePayoutSettings()">Save Settings</button>
+        <button class="btn btn-green-soft btn-sm" id="btnSyncRsvp" onclick="syncRsvpCount()">↻ Sync from RSVPs</button>
+      </div>
+    </div>
+
+    <!-- Pot Summary -->
+    <div class="pot-summary" id="potSummary">
+      <div class="pot-item"><div class="pot-label">Total Pot</div><div class="pot-val" id="summaryPot">$0</div></div>
+      <div class="pot-item"><div class="pot-label">Entries</div><div class="pot-val" id="summaryEntries">0</div></div>
+      <div class="pot-item"><div class="pot-label">Rebuys</div><div class="pot-val" id="summaryRebuys">0</div></div>
+      <div class="pot-item"><div class="pot-label">Paid Places</div><div class="pot-val" id="summaryPaid">0</div></div>
+    </div>
+
+    <!-- Payout Table -->
+    <div class="payout-section">
+      <div class="section-hd">Points &amp; Payouts</div>
+      <table class="payout-table" id="payoutTable">
+        <thead>
+          <tr><th>Place</th><th>Player</th><th class="pts-cell">Points</th><th class="cash-cell">Cash</th></tr>
+        </thead>
+        <tbody id="payoutTbody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════
+     TV FOOTER
+════════════════════════════ -->
+<div class="tv-footer">Ardenlee Poker League</div>
+
+<!-- ════════════════════════════
+     OVERLAYS
+════════════════════════════ -->
+
+<!-- Level Up -->
+<div class="levelup-overlay" id="levelupOverlay" onclick="dismissLevelUp()">
+  <div class="levelup-icon">⏰</div>
+  <div class="levelup-title">LEVEL UP!</div>
+  <div class="levelup-blinds" id="luBlinds">—/—</div>
+  <div class="levelup-ante" id="luAnte"></div>
+  <div class="levelup-auto" id="luAuto">Tap anywhere to advance &nbsp;|&nbsp; auto in <span id="luCountdown">8</span>s</div>
+</div>
+
+<!-- Winner -->
+<div class="winner-overlay" id="winnerOverlay">
+  <canvas class="winner-confetti" id="confettiCanvas"></canvas>
+  <div class="winner-trophy">🏆</div>
+  <div class="winner-title">Champion</div>
+  <div class="winner-name" id="winnerName">—</div>
+  <div class="winner-stats" id="winnerStats"></div>
+  <button class="close-winner" onclick="closeWinner()">Close &amp; Update Stats</button>
+</div>
+
+<!-- Blind Structure Editor -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <div class="modal-title">⚙️ Blind Structure Editor</div>
+    <table class="structure-table" id="structureTable">
+      <thead><tr><th>Lvl</th><th>Small</th><th>Big</th><th>Ante</th><th>Min</th><th></th></tr></thead>
+      <tbody id="structureTbody"></tbody>
+    </table>
+    <div class="modal-footer">
+      <button class="btn-add" onclick="addLevel()">+ Add Level</button>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+        <button class="btn-save" onclick="saveStructure()">Save Structure</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  ELEVENLABS CONFIG — paste your API key here when ready
+//  Get one at https://elevenlabs.io  (free tier = plenty)
+// ═══════════════════════════════════════════════════════════
+var EL = {
+  key: 'sk_01272718ad0fc8d65f1e7130cbdcbec57efcba4b88ad9a86',
+  voices: {
+    announcer: 'EXAVITQu4vr4xnSDxMaL', // Adam - clear announcer
+    hype:      'pNInz6obpgDQGcFmaJgB',  // Adam v2 - energetic
+    deadpan:   'TxGEqnHWrfWFTfGW9XjX',  // Josh - dry/deadpan
+    roast:     'VR6AewLTigWG4xSOukaG'   // Arnold - sarcastic
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+//  COMMENTARY LINES
+// ═══════════════════════════════════════════════════════════
+var COMMENTARY = {
+  levelStart: [
+    ["Shuffle up and deal! Level {N} is live — blinds are {SB} and {BB}!", "announcer"],
+    ["SHUFFLE UP AND DEAL! Level {N}! {SB} slash {BB}! LET'S GO BABY!", "hype"],
+    ["Dealers, shuffle up and deal. Level {N}. Blinds: {SB} and {BB}. Try to look like you know what you're doing.", "deadpan"],
+    ["Cards in the air, ladies and gentlemen! Level {N}! Blinds are {SB} and {BB}!", "announcer"],
+    ["Shuffle up and deal! We are on Level {N}. The blinds are {SB} and {BB}. May God have mercy on your stacks.", "announcer"],
+    ["Cards are in the air for Level {N}! {SB} and {BB}! Someone's going home soon and it won't be pretty!", "hype"],
+    ["SHUFFLE UP AND DEAL! Level {N}! The blinds are now {SB} and {BB}! THE STAKES ARE REAL!", "hype"],
+    ["Level {N}. Blinds: {SB} and {BB}. Cards in the air. For those of you who folded every hand last level... same energy.", "deadpan"],
+    ["Dealers, shuffle up and deal. Level {N} has begun. Blinds are {SB} and {BB}. Someone at this table is about to make a decision they will regret.", "announcer"],
+    ["Level {N}. Shuffle up and deal. {SB} and {BB}. The weak have been... actually the weak are still here. We tried.", "deadpan"]
+  ],
+  levelEnd: [
+    ["Time's up on Level {N}! Moving on up. Or moving on out. One of those.", "announcer"],
+    ["LEVEL {N} IS DONE! Another level survived by some, not all! Beautiful chaos!", "hype"],
+    ["Level {N} complete. The survivors know who they are. The eliminated... also know.", "deadpan"]
+  ],
+  midLevel: [
+    ["Just a reminder that looking at your hole cards more than twice does not change them. We've watched you try.", "deadpan"],
+    ["Someone at this table is counting their chips for the fifteenth time this hour. You know who you are. We all do.", "deadpan"],
+    ["Statistics show that the person who shuffles the deck the longest wins exactly zero additional hands.", "deadpan"],
+    ["Pro tip: confidence and competence are two separate things. This table is a masterclass in that distinction.", "roast"],
+    ["At Ardenlee Poker League, we believe in everyone here. We believe some of you more than others, but still.", "announcer"],
+    ["If you can hear my voice, congratulations, you're still in. Well done on clearing that very low bar.", "deadpan"],
+    ["Somewhere at this table, someone is about to make a call they absolutely should not make. This message is for them.", "roast"],
+    ["Nobody here is a professional poker player. And it shows. Lovingly. It shows lovingly.", "deadpan"],
+    ["The poker gods are watching. They appear to be entertained.", "announcer"],
+    ["Remember: poker is a game of skill, patience, and reading your opponents. Tonight, we are witnessing none of those things.", "deadpan"]
+  ],
+  roastPlayer: [
+    ["{P}, we've been tracking your decision-making tonight and we have questions. Many questions.", "roast"],
+    ["A special shoutout to {P}, who is out here making bold choices. Bold. Unhinged, perhaps. But bold.", "roast"],
+    ["{P} is still breathing at this table. We're as surprised as anyone.", "deadpan"],
+    ["Keep an eye on {P}. Either they know exactly what they're doing, or they have absolutely no idea. Both are terrifying.", "roast"],
+    ["{P}... buddy... those chips aren't going to replenish themselves. Just a friendly heads up.", "deadpan"],
+    ["Someone asked a professional poker player to evaluate {P}'s game. They declined to comment, citing emotional distress.", "roast"],
+    ["Fun fact: {P} has survived to Level {N}. Nobody had that in the pool.", "roast"],
+    ["{P} is playing a long game. Or they're card dead. Hard to tell from here.", "deadpan"],
+    ["Shoutout to {P} for keeping things interesting by making the kind of decisions that only make sense in their head.", "roast"],
+    ["We ran the numbers. We're not going to tell {P} what the numbers said. It's kinder this way.", "roast"]
+  ],
+  finalLevel: [
+    ["We have reached the FINAL blind level. From here on out, every chip matters, every decision is permanent, and every bluff will be remembered forever. Good luck.", "announcer"],
+    ["FINAL LEVEL! THIS IS IT! WHOEVER SURVIVES THIS IS IMMORTAL! AT LEAST UNTIL NEXT GAME NIGHT!", "hype"],
+    ["The final level. Whatever happens from here, it was an honor to watch. Mostly.", "deadpan"]
+  ],
+  knockout: [
+    ["{P} busts in {PLACE}! We'll miss them at the table. Actually we'll miss their chips at the table.", "roast"],
+    ["{P} is eliminated in {PLACE} place! A moment of silence... okay that's enough. Keep playing.", "announcer"],
+    ["And {P} hits the rail in {PLACE}! Their poker journey ends here tonight, but their excuses will live on forever.", "roast"],
+    ["{P} goes out in {PLACE}! Head held high. Or head in hands. Either is valid.", "deadpan"]
+  ],
+  winner: [
+    ["{P} WINS THE ARDENLEE POKER LEAGUE! Lock up your chips! Lock up your dignity! This person has none to lose anymore!", "hype"],
+    ["CHAMPION! {P} takes it all! The money, the glory, and the right to bring this up at literally every future game night!", "hype"],
+    ["{P} has won the tournament! A dominant performance! Or a series of lucky coinflips! Does it matter? They won!", "announcer"]
+  ]
+};
+
+// Points structure by finish position
+var POINTS = [10, 7, 5, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+function getPoints(place, totalPlayers) { return POINTS[Math.min(place - 1, POINTS.length - 1)] || 1; }
+
+// Payout % splits by paid places
+var SPLITS = {
+  1:[100],
+  2:[65,35],
+  3:[55,28,17],
+  4:[47,26,16,11],
+  5:[41,24,15,11,9]
+};
+
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+var myName = (function(){ try{return localStorage.getItem('tpl_myname')||'';}catch(e){return '';} })();
+var isAdmin = (myName === 'Tod');
+var isTV    = (new URLSearchParams(location.search).get('tv') === '1');
+var commentaryEnabled = true;
+
+var timerState = { running:false, currentLevel:0, levelStartTime:null, totalPausedMs:0, pausedAt:null };
+var blindStructure = [];
+var gamePlayers = {}; // { "Name": { status:"in"|"out"|"winner", place:N } }
+var payoutSettings = { buyIn:100, players:10, rebuys:0, rebuyAmt:100, paidPlaces:3, split:'auto' };
+
+var db = null, stateRef = null, structRef = null, playersRef = null, payoutRef = null;
+var tickInt = null, commentaryInt = null;
+var luAutoInt = null;
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+(function init(){
+  // UI mode setup
+  if(isTV){ document.body.classList.add('tv'); document.getElementById('badgeTV').style.display=''; }
+  if(isAdmin){ document.getElementById('adminBar').classList.add('visible'); document.getElementById('badgeTod').style.display=''; document.getElementById('noStructBtn').style.display=''; document.getElementById('noStructText').textContent='Click below to configure blind levels before the game starts.'; }
+
+  // Firebase
+  if(window._firebaseReady){
+    db = firebase.database();
+    stateRef   = db.ref('gameNight/timerState');
+    structRef  = db.ref('gameNight/blindStructure');
+    playersRef = db.ref('gameNight/players');
+    payoutRef  = db.ref('gameNight/payoutSettings');
+
+    stateRef.on('value',  function(s){ var v=s.val(); if(v){ timerState=v; } renderTimer(); updateTimerControls(); updateLiveBadge(); });
+    structRef.on('value', function(s){ var v=s.val(); blindStructure=(v&&v.length)?v:[]; renderTimer(); calcPayouts(); });
+    playersRef.on('value',function(s){ var v=s.val(); gamePlayers=v||{}; renderPlayers(); calcPayouts(); checkWinner(); });
+    payoutRef.on('value', function(s){ var v=s.val(); if(v){ payoutSettings=v; applyPayoutSettingsToForm(); calcPayouts(); } });
+  }
+
+  // Commentary every 4 min during play
+  commentaryInt = setInterval(maybeFireMidLevelCommentary, 4 * 60 * 1000);
+  tickInt = setInterval(tick, 500);
+
+  // Sync players from RSVP if none set
+  setTimeout(function(){ if(!Object.keys(gamePlayers).length) syncRsvpCount(); }, 2000);
+
+  // Load payout form defaults
+  calcPayouts();
+})();
+
+// ═══════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════
+function switchTab(name){
+  document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('tab-btn-'+name).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TIMER DISPLAY
+// ═══════════════════════════════════════════════════════════
+function renderTimer(){
+  if(!blindStructure.length){
+    document.getElementById('noStructMsg').style.display='';
+    document.getElementById('timerContent').style.display='none';
+    return;
+  }
+  document.getElementById('noStructMsg').style.display='none';
+  document.getElementById('timerContent').style.display='';
+
+  var idx = timerState.currentLevel||0;
+  var lvl = blindStructure[idx];
+  if(!lvl) return;
+
+  document.getElementById('dispLevel').textContent = idx+1;
+  document.getElementById('dispSmall').textContent = fmt(lvl.small);
+  document.getElementById('dispBig').textContent   = fmt(lvl.big);
+  if(lvl.ante && lvl.ante>0){
+    document.getElementById('dispAnteRow').style.display='';
+    document.getElementById('dispAnte').textContent = fmt(lvl.ante);
+  } else {
+    document.getElementById('dispAnteRow').style.display='none';
+  }
+
+  var nextLvl = blindStructure[idx+1];
+  var ne = document.getElementById('dispNext');
+  if(nextLvl){
+    ne.innerHTML='Next → Level '+(idx+2)+': <span>'+fmt(nextLvl.small)+'/'+fmt(nextLvl.big)+(nextLvl.ante?'  Ante '+fmt(nextLvl.ante):'')+'</span>';
+  } else {
+    ne.innerHTML='<span style="color:var(--gold)">🏆 Final Level</span>';
+  }
+
+  tick();
+}
+
+function tick(){
+  if(!blindStructure.length) return;
+  var idx = timerState.currentLevel||0;
+  var lvl = blindStructure[idx];
+  if(!lvl) return;
+
+  var remaining = getRemaining();
+  var durMs = lvl.minutes*60*1000;
+  var cd = document.getElementById('dispCountdown');
+  var st = document.getElementById('dispStatus');
+
+  // Auto advance when 0
+  if(timerState.running && remaining<=0){
+    if(!document.getElementById('levelupOverlay').classList.contains('show')){
+      showLevelUp();
+    }
+    return;
+  }
+
+  if(!timerState.running && !timerState.levelStartTime){
+    cd.textContent = fmtTime(durMs); cd.className='countdown stopped';
+    st.textContent = isAdmin ? 'Press Start to begin' : 'Waiting for game to start…';
+  } else if(!timerState.running && timerState.pausedAt){
+    cd.textContent = fmtTime(remaining); cd.className='countdown warn';
+    st.textContent = '⏸ Paused';
+  } else {
+    st.textContent = '';
+    cd.textContent = fmtTime(remaining);
+    cd.className = remaining>120000 ? 'countdown' : remaining>60000 ? 'countdown warn' : 'countdown danger';
+  }
+
+  // Progress
+  var pct = durMs>0 ? Math.max(0,Math.min(100,(remaining/durMs)*100)) : 0;
+  var pf = document.getElementById('dispProgress');
+  pf.style.width = pct+'%';
+  pf.style.background = remaining>120000
+    ? 'linear-gradient(90deg,var(--green),var(--gold))'
+    : remaining>60000
+    ? 'linear-gradient(90deg,var(--amber),var(--gold))'
+    : 'linear-gradient(90deg,var(--red),var(--amber))';
+}
+
+function getRemaining(){
+  var idx = timerState.currentLevel||0;
+  var lvl = blindStructure[idx];
+  if(!lvl) return 0;
+  var durMs = lvl.minutes*60*1000;
+  if(!timerState.levelStartTime) return durMs;
+  var paused = timerState.totalPausedMs||0;
+  var elapsed = timerState.running
+    ? Date.now()-timerState.levelStartTime-paused
+    : (timerState.pausedAt||(timerState.levelStartTime+durMs)) - timerState.levelStartTime - paused;
+  return Math.max(0, durMs-elapsed);
+}
+
+function fmt(n){ n=Number(n)||0; return n>=1000?(n/1000)+'K':n+''; }
+function fmtTime(ms){
+  if(ms<0)ms=0;
+  var s=Math.ceil(ms/1000); var m=Math.floor(s/60); s=s%60;
+  return m+':'+(s<10?'0':'')+s;
+}
+function fmtMoney(n){ return '$'+Number(n).toLocaleString(); }
+
+// ═══════════════════════════════════════════════════════════
+//  TIMER CONTROLS
+// ═══════════════════════════════════════════════════════════
+function updateTimerControls(){
+  if(!isAdmin) return;
+  var bs=document.getElementById('btnStart');
+  var bp=document.getElementById('btnPause');
+  var br=document.getElementById('btnResume');
+  var started = timerState.levelStartTime!==null;
+  if(timerState.running){ bs.style.display='none'; bp.style.display=''; br.style.display='none'; }
+  else if(started && timerState.pausedAt){ bs.style.display='none'; bp.style.display='none'; br.style.display=''; }
+  else { bs.style.display=''; bp.style.display='none'; br.style.display='none'; }
+}
+function updateLiveBadge(){
+  document.getElementById('badgeLive').style.display = timerState.running ? '' : 'none';
+}
+
+function pushState(s){
+  timerState=s;
+  if(stateRef) try{stateRef.set(s);}catch(e){}
+  renderTimer(); updateTimerControls(); updateLiveBadge();
+}
+
+function startTimer(){
+  if(!isAdmin||!blindStructure.length){showToast('Set up blind structure first');return;}
+  pushState({ running:true, currentLevel:timerState.currentLevel||0, levelStartTime:Date.now(), totalPausedMs:0, pausedAt:null });
+  announceLevel(timerState.currentLevel);
+}
+function pauseTimer(){
+  if(!isAdmin||!timerState.running) return;
+  pushState(Object.assign({},timerState,{ running:false, pausedAt:Date.now() }));
+  showToast('⏸ Paused');
+}
+function resumeTimer(){
+  if(!isAdmin||timerState.running) return;
+  var extra = timerState.pausedAt ? Date.now()-timerState.pausedAt : 0;
+  pushState(Object.assign({},timerState,{ running:true, totalPausedMs:(timerState.totalPausedMs||0)+extra, pausedAt:null }));
+  showToast('▶ Resumed');
+}
+function nextLevel(){
+  if(!isAdmin) return;
+  var next = (timerState.currentLevel||0)+1;
+  if(next>=blindStructure.length){ showToast('Already at final level'); return; }
+  dismissLevelUp();
+  pushState({ running:timerState.running||false, currentLevel:next, levelStartTime:timerState.running?Date.now():null, totalPausedMs:0, pausedAt:null });
+  if(timerState.running) announceLevel(next);
+}
+function prevLevel(){
+  if(!isAdmin) return;
+  var prev=(timerState.currentLevel||0)-1;
+  if(prev<0){ showToast('Already at Level 1'); return; }
+  dismissLevelUp();
+  pushState({ running:timerState.running||false, currentLevel:prev, levelStartTime:timerState.running?Date.now():null, totalPausedMs:0, pausedAt:null });
+}
+function resetTimer(){
+  if(!isAdmin) return;
+  if(!confirm('Reset timer to Level 1?')) return;
+  dismissLevelUp();
+  pushState({ running:false, currentLevel:0, levelStartTime:null, totalPausedMs:0, pausedAt:null });
+  showToast('↺ Reset to Level 1');
+}
+
+// TV mode
+function openTVMode(){ window.open(location.pathname+'?tv=1','_blank'); }
+
+// Commentary toggle
+function toggleCommentary(){
+  commentaryEnabled=!commentaryEnabled;
+  document.getElementById('commentaryLabel').textContent = commentaryEnabled ? 'Commentary ON' : 'Commentary OFF';
+  showToast(commentaryEnabled ? '🎤 Commentary on' : '🔇 Commentary off');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LEVEL UP OVERLAY
+// ═══════════════════════════════════════════════════════════
+function showLevelUp(){
+  var idx = timerState.currentLevel||0;
+  var nextLvl = blindStructure[idx+1];
+  var ol = document.getElementById('levelupOverlay');
+  ol.classList.add('show');
+
+  if(nextLvl){
+    document.getElementById('luBlinds').textContent = fmt(nextLvl.small)+'/'+fmt(nextLvl.big);
+    document.getElementById('luAnte').textContent   = nextLvl.ante ? 'Ante: '+fmt(nextLvl.ante) : '';
+
+    // Commentary: level end + level start of next
+    var endLine = pickLine(COMMENTARY.levelEnd, {N:idx+1});
+    speak(endLine[0], endLine[1]);
+    setTimeout(function(){
+      var startLine = pickLine(COMMENTARY.levelStart, {N:idx+2, SB:nextLvl.small, BB:nextLvl.big});
+      speak(startLine[0], startLine[1]);
+    }, 4000);
+
+    // Auto advance
+    if(isAdmin){
+      var count = 8;
+      document.getElementById('luCountdown').textContent = count;
+      luAutoInt = setInterval(function(){
+        count--;
+        var el=document.getElementById('luCountdown');
+        if(el) el.textContent=count;
+        if(count<=0){ clearInterval(luAutoInt); if(nextLvl) nextLevel(); else dismissLevelUp(); }
+      }, 1000);
+    }
+  } else {
+    document.getElementById('luBlinds').textContent = 'Final Level Complete!';
+    document.getElementById('luAnte').textContent = '';
+    var fl = pickLine(COMMENTARY.finalLevel, {});
+    speak(fl[0], fl[1]);
+    document.getElementById('luAuto').textContent = 'Tap to close';
+  }
+}
+function dismissLevelUp(){
+  clearInterval(luAutoInt);
+  document.getElementById('levelupOverlay').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PLAYERS
+// ═══════════════════════════════════════════════════════════
+function renderPlayers(){
+  var grid = document.getElementById('playersGrid');
+  var names = Object.keys(gamePlayers);
+  if(!names.length){ grid.innerHTML='<div class="players-empty">No players loaded. Set up RSVPs on the home page first.</div>'; return; }
+
+  var inCount=0, outCount=0;
+  names.forEach(function(n){ var p=gamePlayers[n]; if(p.status==='in'||p.status==='winner')inCount++; else outCount++; });
+  document.getElementById('statsIn').textContent  = inCount;
+  document.getElementById('statsOut').textContent = outCount;
+
+  // Sort: in first, then by place (ascending) for out
+  names.sort(function(a,b){
+    var pa=gamePlayers[a], pb=gamePlayers[b];
+    if((pa.status==='in'||pa.status==='winner')&&pb.status==='out') return -1;
+    if(pa.status==='out'&&(pb.status==='in'||pb.status==='winner')) return 1;
+    if(pa.place&&pb.place) return pa.place-pb.place;
+    return a.localeCompare(b);
+  });
+
+  var html='';
+  names.forEach(function(name){
+    var p = gamePlayers[name];
+    var isIn    = p.status==='in';
+    var isWin   = p.status==='winner';
+    var isOut   = p.status==='out';
+    var cls     = isIn ? 'active' : isWin ? 'winner' : 'out';
+    var statusTxt = isWin ? '🏆 WINNER' : isIn ? 'Still In' : 'Eliminated';
+    var statusCls = isWin ? 'winner' : isIn ? 'in' : 'out';
+    var placeStr  = p.place ? ordinal(p.place)+' place' : '';
+    html += '<div class="player-card '+cls+'" id="pc-'+esc(name)+'">';
+    html += '<div class="pc-name">'+esc(name)+'</div>';
+    html += '<div class="pc-status '+statusCls+'">'+statusTxt+'</div>';
+    if(placeStr) html += '<div class="pc-place">'+placeStr+'</div>';
+    if(isIn){
+      html += '<button class="bust-btn" onclick="toggleBustForm(\''+esc(name)+'\')">I\'m Out</button>';
+      html += '<div class="bust-form" id="bust-'+esc(name)+'">';
+      html += '<label>Finish position:</label>';
+      html += '<select id="bustSel-'+esc(name)+'">'+placeOptions(names.length)+'</select>';
+      html += '<div class="bust-form-btns">';
+      html += '<button class="btn btn-danger btn-xs" onclick="confirmBust(\''+esc(name)+'\')">Confirm</button>';
+      html += '<button class="btn btn-outline btn-xs" onclick="toggleBustForm(\''+esc(name)+'\')">Cancel</button>';
+      html += '</div></div>';
+    }
+    html += '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+function toggleBustForm(name){
+  var f = document.getElementById('bust-'+name);
+  if(f) f.classList.toggle('open');
+}
+
+function confirmBust(name){
+  var sel = document.getElementById('bustSel-'+name);
+  if(!sel) return;
+  var place = parseInt(sel.value);
+  var totalIn = Object.keys(gamePlayers).filter(function(n){ return gamePlayers[n].status==='in'; }).length;
+
+  var update = {};
+  if(place === 1){
+    update[name] = { status:'winner', place:1 };
+  } else {
+    update[name] = { status:'out', place:place };
+  }
+
+  if(playersRef) try{ playersRef.update(update); }catch(e){}
+  gamePlayers[name] = update[name];
+  renderPlayers();
+  calcPayouts();
+
+  // Announce knockout
+  var koLine = pickLine(COMMENTARY.knockout, {P:name, PLACE:ordinal(place)});
+  setTimeout(function(){ speak(koLine[0], koLine[1]); }, 500);
+
+  checkWinner();
+  showToast(name + ' busted in ' + ordinal(place) + ' place');
+}
+
+function syncRsvpCount(){
+  // Pull from Firebase RSVP (same path as index.html uses)
+  if(!db) return;
+  var fbKey = (function(){
+    try{ var ng=window.ng||(typeof ng!=='undefined'?ng:null); if(ng&&ng.date) return 'rsvp_'+ng.date.replace(/-/g,''); }catch(e){}
+    return null;
+  })();
+  // Try reading existing seats or rsvp
+  db.ref('seats_'+fbKey).once('value', function(snap){
+    var seats = snap.val();
+    if(seats && seats.length){
+      var update={};
+      seats.forEach(function(n){ if(!gamePlayers[n]) update[n]={status:'in',place:null}; });
+      if(Object.keys(update).length && playersRef) playersRef.update(update);
+      showToast('Synced '+seats.length+' players from seat draw');
+      return;
+    }
+    // Fallback: read rsvp
+    if(fbKey) db.ref('rsvp_'+fbKey).once('value', function(s2){
+      var rv=s2.val()||{};
+      var update={};
+      Object.keys(rv).forEach(function(n){ if(rv[n]==='in'&&!gamePlayers[n]) update[n]={status:'in',place:null}; });
+      if(Object.keys(update).length && playersRef){ playersRef.update(update); showToast('Synced from RSVPs'); }
+    });
+  });
+}
+
+function checkWinner(){
+  var names = Object.keys(gamePlayers);
+  var inPlayers = names.filter(function(n){ return gamePlayers[n].status==='in'; });
+  var winner = names.find(function(n){ return gamePlayers[n].status==='winner'; });
+  if(winner){
+    showWinner(winner); return;
+  }
+  if(inPlayers.length===1 && names.length>1){
+    // Auto-set winner
+    var w = inPlayers[0];
+    var upd = {}; upd[w]={status:'winner',place:1};
+    if(playersRef) try{playersRef.update(upd);}catch(e){}
+    gamePlayers[w]={status:'winner',place:1};
+    renderPlayers(); calcPayouts();
+    showWinner(w);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  WINNER CELEBRATION
+// ═══════════════════════════════════════════════════════════
+function showWinner(name){
+  document.getElementById('winnerName').textContent = name;
+  // Build stats
+  var p = payoutSettings;
+  var totalPot = (Number(p.players)||1)*Number(p.buyIn) + (Number(p.rebuys)||0)*Number(p.rebuyAmt||p.buyIn);
+  var paidPlaces = Math.min(Number(p.paidPlaces)||3, Object.keys(gamePlayers).length);
+  var splits = SPLITS[paidPlaces] || SPLITS[3];
+  var winCash = Math.round(totalPot * splits[0] / 100);
+  var winPts  = getPoints(1, Object.keys(gamePlayers).length);
+  document.getElementById('winnerStats').innerHTML =
+    '<div class="ws-item"><div class="ws-label">Prize</div><div class="ws-val">'+fmtMoney(winCash)+'</div></div>'+
+    '<div class="ws-item"><div class="ws-label">Points</div><div class="ws-val">'+winPts+' pts</div></div>';
+
+  document.getElementById('winnerOverlay').classList.add('show');
+  startConfetti();
+
+  // Winner announcement
+  var wLine = pickLine(COMMENTARY.winner, {P:name});
+  setTimeout(function(){ speak(wLine[0], wLine[1]); }, 800);
+}
+
+function closeWinner(){
+  document.getElementById('winnerOverlay').classList.remove('show');
+  stopConfetti();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PAYOUTS
+// ═══════════════════════════════════════════════════════════
+function applyPayoutSettingsToForm(){
+  var p=payoutSettings;
+  if(p.buyIn!==undefined)    document.getElementById('pBuyIn').value    = p.buyIn;
+  if(p.players!==undefined)  document.getElementById('pPlayers').value  = p.players;
+  if(p.rebuys!==undefined)   document.getElementById('pRebuys').value   = p.rebuys;
+  if(p.rebuyAmt!==undefined) document.getElementById('pRebuyAmt').value = p.rebuyAmt;
+  if(p.paidPlaces!==undefined) document.getElementById('pPaidPlaces').value = p.paidPlaces;
+  if(p.split!==undefined)    document.getElementById('pSplit').value    = p.split;
+}
+
+function savePayoutSettings(){
+  var s = {
+    buyIn:    Number(document.getElementById('pBuyIn').value)||100,
+    players:  Number(document.getElementById('pPlayers').value)||10,
+    rebuys:   Number(document.getElementById('pRebuys').value)||0,
+    rebuyAmt: Number(document.getElementById('pRebuyAmt').value)||100,
+    paidPlaces: Number(document.getElementById('pPaidPlaces').value)||3,
+    split: document.getElementById('pSplit').value
+  };
+  payoutSettings = s;
+  if(payoutRef) try{payoutRef.set(s);}catch(e){}
+  calcPayouts();
+  showToast('✅ Payout settings saved');
+}
+
+function calcPayouts(){
+  var buyIn    = Number(document.getElementById('pBuyIn').value)||100;
+  var players  = Number(document.getElementById('pPlayers').value)||10;
+  var rebuys   = Number(document.getElementById('pRebuys').value)||0;
+  var rebuyAmt = Number(document.getElementById('pRebuyAmt').value)||100;
+  var paidPlaces= Number(document.getElementById('pPaidPlaces').value)||3;
+  var totalPot = players*buyIn + rebuys*rebuyAmt;
+  var entries  = players + rebuys;
+
+  document.getElementById('summaryPot').textContent     = fmtMoney(totalPot);
+  document.getElementById('summaryEntries').textContent = players;
+  document.getElementById('summaryRebuys').textContent  = rebuys;
+  document.getElementById('summaryPaid').textContent    = paidPlaces;
+
+  var splits = SPLITS[Math.min(paidPlaces,5)] || SPLITS[3];
+
+  // Build sorted result list: knocked-out by place desc, then "in" players at top
+  var allNames = Object.keys(gamePlayers).sort(function(a,b){
+    var pa=gamePlayers[a],pb=gamePlayers[b];
+    if(pa.status==='in'&&pb.status!=='in') return -1;
+    if(pa.status!=='in'&&pb.status==='in') return 1;
+    if(pa.place&&pb.place) return pa.place-pb.place;
+    return 0;
+  });
+
+  var html='';
+  for(var place=1; place<=Math.max(players, allNames.length, 1); place++){
+    var isITM = place<=paidPlaces;
+    var pName = allNames.find(function(n){ return gamePlayers[n].place===place; }) || '—';
+    var pts   = getPoints(place, players);
+    var cash  = isITM ? Math.round(totalPot*(splits[place-1]||0)/100) : 0;
+    var isWinner = place===1;
+    html += '<tr class="'+(isWinner?'winner-row':isITM?'itm':'')+'">';
+    html += '<td class="place-cell">'+ordinal(place)+'</td>';
+    html += '<td>'+(pName==='—'?'<span style="color:var(--faint)">TBD</span>':pName)+'</td>';
+    html += '<td class="pts-cell">'+pts+'</td>';
+    html += '<td class="cash-cell">'+(isITM?fmtMoney(cash):'—')+'</td>';
+    html += '</tr>';
+    if(place>=Math.max(paidPlaces+3, allNames.length)) break;
+  }
+  document.getElementById('payoutTbody').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  BLIND STRUCTURE EDITOR
+// ═══════════════════════════════════════════════════════════
+var editRows = [];
+function openEditModal(){
+  editRows = blindStructure.length ? blindStructure.map(function(r){ return Object.assign({},r); })
+    : [{ small:25, big:50, ante:0, minutes:20 }];
+  renderStructureTable();
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal(){ document.getElementById('editModal').classList.remove('open'); }
+function renderStructureTable(){
+  var tbody = document.getElementById('structureTbody');
+  tbody.innerHTML='';
+  editRows.forEach(function(row,i){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td class="lvl-n">'+(i+1)+'</td>'+
+      '<td><input type="number" min="0" value="'+(row.small||0)+'" onchange="editRows['+i+'].small=Number(this.value)"></td>'+
+      '<td><input type="number" min="0" value="'+(row.big||0)+'" onchange="editRows['+i+'].big=Number(this.value)"></td>'+
+      '<td><input type="number" min="0" value="'+(row.ante||0)+'" onchange="editRows['+i+'].ante=Number(this.value)"></td>'+
+      '<td><input type="number" min="1" max="120" value="'+(row.minutes||20)+'" class="w-min" onchange="editRows['+i+'].minutes=Number(this.value)"></td>'+
+      '<td><button class="btn-del" onclick="delRow('+i+')">✕</button></td>';
+    tbody.appendChild(tr);
+  });
+}
+function addLevel(){
+  var last=editRows[editRows.length-1];
+  editRows.push({ small:last?last.big:50, big:last?last.big*2:100, ante:last?last.ante:0, minutes:last?last.minutes:20 });
+  renderStructureTable();
+}
+function delRow(i){ editRows.splice(i,1); renderStructureTable(); }
+function saveStructure(){
+  // Sync from inputs one more time
+  document.querySelectorAll('#structureTbody input').forEach(function(inp){
+    inp.dispatchEvent(new Event('change'));
+  });
+  if(!editRows.length){ showToast('Add at least one level'); return; }
+  blindStructure=editRows.slice();
+  if(structRef) try{structRef.set(blindStructure);}catch(e){}
+  closeEditModal(); renderTimer(); calcPayouts();
+  showToast('✅ Blind structure saved!');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VOICE / COMMENTARY
+// ═══════════════════════════════════════════════════════════
+var audioQueue = [];
+var isPlaying  = false;
+
+async function speak(text, voiceType){
+  if(!commentaryEnabled) return;
+  audioQueue.push({ text:text, voiceType:voiceType||'announcer' });
+  if(!isPlaying) processQueue();
+}
+
+async function processQueue(){
+  if(!audioQueue.length){ isPlaying=false; return; }
+  isPlaying=true;
+  var item = audioQueue.shift();
+  if(EL.key){
+    await speakEL(item.text, item.voiceType);
+  } else {
+    await speakFallback(item.text, item.voiceType);
+  }
+  setTimeout(processQueue, 600);
+}
+
+async function speakEL(text, voiceType){
+  return new Promise(function(resolve){
+    var vid = EL.voices[voiceType] || EL.voices.announcer;
+    fetch('https://api.elevenlabs.io/v1/text-to-speech/'+vid+'/stream', {
+      method:'POST',
+      headers:{ 'xi-api-key':EL.key, 'Content-Type':'application/json', 'Accept':'audio/mpeg' },
+      body:JSON.stringify({ text:text, model_id:'eleven_turbo_v2', voice_settings:{ stability:0.4, similarity_boost:0.8, style:0.5, use_speaker_boost:true } })
+    }).then(function(r){
+      if(!r.ok) throw new Error('EL '+r.status);
+      return r.blob();
+    }).then(function(blob){
+      var url = URL.createObjectURL(blob);
+      var audio = new Audio(url);
+      audio.onended = function(){ URL.revokeObjectURL(url); resolve(); };
+      audio.onerror = resolve;
+      audio.play().catch(resolve);
+    }).catch(function(e){ console.warn('ElevenLabs fail, using fallback:',e); speakFallback(text,voiceType).then(resolve); });
+  });
+}
+
+function speakFallback(text, voiceType){
+  return new Promise(function(resolve){
+    if(!window.speechSynthesis){ resolve(); return; }
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    switch(voiceType){
+      case 'hype':    u.pitch=1.3; u.rate=1.1; break;
+      case 'deadpan': u.pitch=0.75; u.rate=0.72; break;
+      case 'roast':   u.pitch=0.85; u.rate=0.9; break;
+      default:        u.pitch=1.0; u.rate=0.85;
+    }
+    u.onend=resolve; u.onerror=resolve;
+    window.speechSynthesis.speak(u);
+  });
+}
+
+function announceLevel(idx){
+  var lvl = blindStructure[idx];
+  if(!lvl) return;
+  var isFinal = idx===blindStructure.length-1;
+  var pool = isFinal ? COMMENTARY.finalLevel : COMMENTARY.levelStart;
+  var line = pickLine(pool, {N:idx+1, SB:lvl.small, BB:lvl.big});
+  speak(line[0], line[1]);
+}
+
+function maybeFireMidLevelCommentary(){
+  if(!timerState.running || !commentaryEnabled) return;
+  var roll = Math.random();
+  if(roll < 0.55){
+    var line = pickLine(COMMENTARY.midLevel, {});
+    speak(line[0], line[1]);
+  } else {
+    // Roast a random player still in
+    var inPlayers = Object.keys(gamePlayers).filter(function(n){ return gamePlayers[n].status==='in'; });
+    if(!inPlayers.length) return;
+    var target = inPlayers[Math.floor(Math.random()*inPlayers.length)];
+    var line = pickLine(COMMENTARY.roastPlayer, {P:target, N:(timerState.currentLevel||0)+1});
+    speak(line[0], line[1]);
+  }
+}
+
+function pickLine(arr, vars){
+  var idx = Math.floor(Math.random()*arr.length);
+  var item = arr[idx];
+  var text = item[0];
+  Object.keys(vars).forEach(function(k){ text=text.replace(new RegExp('\\{'+k+'\\}','g'), vars[k]); });
+  return [text, item[1]];
+}
+
+// Seat draw announcement (called from index.html after draw)
+window.announceSeatDraw = function(seats){
+  if(!commentaryEnabled) return;
+  var queue = [];
+  seats.forEach(function(name,i){
+    var line = name + ', seat ' + (i+1);
+    queue.push(line); queue.push(line);
+  });
+  var idx=0;
+  function next(){
+    if(idx>=queue.length) return;
+    var u=new SpeechSynthesisUtterance(queue[idx++]);
+    u.rate=0.88; u.pitch=1.0;
+    u.onend=function(){ setTimeout(next,500); };
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }
+  next();
+};
+
+// ═══════════════════════════════════════════════════════════
+//  CONFETTI
+// ═══════════════════════════════════════════════════════════
+var confetti=[], confettiRaf=null;
+function startConfetti(){
+  var canvas=document.getElementById('confettiCanvas');
+  canvas.width=innerWidth; canvas.height=innerHeight;
+  confetti=[];
+  for(var i=0;i<160;i++) confetti.push({
+    x:Math.random()*innerWidth, y:Math.random()*-innerHeight*0.5,
+    w:8+Math.random()*8, h:6+Math.random()*6,
+    color:['#f5c842','#22c55e','#3b82f6','#ef4444','#f0f0f8'][Math.floor(Math.random()*5)],
+    vx:(Math.random()-0.5)*3, vy:2+Math.random()*3,
+    angle:Math.random()*360, spin:(Math.random()-0.5)*5
+  });
+  function draw(){
+    var ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    confetti.forEach(function(c){
+      ctx.save(); ctx.translate(c.x,c.y); ctx.rotate(c.angle*Math.PI/180);
+      ctx.fillStyle=c.color; ctx.fillRect(-c.w/2,-c.h/2,c.w,c.h); ctx.restore();
+      c.x+=c.vx; c.y+=c.vy; c.angle+=c.spin;
+      if(c.y>canvas.height+20){ c.y=-20; c.x=Math.random()*canvas.width; }
+    });
+    confettiRaf=requestAnimationFrame(draw);
+  }
+  draw();
+}
+function stopConfetti(){
+  if(confettiRaf) cancelAnimationFrame(confettiRaf);
+  var canvas=document.getElementById('confettiCanvas');
+  if(canvas) canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════
+function ordinal(n){
+  var s=['th','st','nd','rd'], v=n%100;
+  return n+(s[(v-20)%10]||s[v]||s[0]);
+}
+function esc(s){ return String(s).replace(/['"&<>]/g,function(c){ return {'\'':'&#39;','"':'&quot;','&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+function placeOptions(total){
+  var html=''; for(var i=1;i<=total;i++) html+='<option value="'+i+'">'+ordinal(i)+' place</option>'; return html;
+}
+function showToast(msg, dur){
+  var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, dur||2500);
+}
+
+// Fire initial mid-level commentary 90s after page load if game running
+setTimeout(function(){
+  if(timerState.running && commentaryEnabled) maybeFireMidLevelCommentary();
+}, 90000);
+</script>
+</body>
+</html>

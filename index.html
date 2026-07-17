@@ -250,6 +250,7 @@
     <a href="schedule.html">Schedule</a>
     <a href="special.html" class="special">⭐ Mid-Season</a>
     <a href="roster.html">Roster</a>
+    <a href="game.html" class="special" style="color:#4ade80;border-color:rgba(74,222,128,0.35)">🎲 Game Night</a>
   </div>
   <a href="admin.html" class="nav-admin">Admin ⚙</a>
 </nav>
@@ -868,6 +869,24 @@ function drawSeats(){
   if(fbLive&&window._firebaseReady){
     try{firebase.database().ref('seats_'+fbKey).set(arr);}catch(e){console.warn('Seat save error:',e.message);}
   }
+  // Announce seats aloud (uses game.html voice engine if loaded, else Web Speech fallback)
+  announceSeatsDirect(arr);
+}
+function announceSeatsDirect(arr){
+  if(window.announceSeatDraw){window.announceSeatDraw(arr);return;}
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  var queue=[];
+  arr.forEach(function(name,i){var t=name+', seat '+(i+1);queue.push(t);queue.push(t);});
+  var idx=0;
+  function next(){
+    if(idx>=queue.length)return;
+    var u=new SpeechSynthesisUtterance(queue[idx++]);
+    u.rate=0.88;u.pitch=1.0;
+    u.onend=function(){setTimeout(next,550);};
+    window.speechSynthesis.speak(u);
+  }
+  next();
 }
 window.drawSeats=drawSeats;
 
