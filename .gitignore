@@ -1,0 +1,8 @@
+# Environment / secrets — never commit these
+.env
+.env.local
+*.env
+
+# OS noise
+.DS_Store
+Thumbs.db

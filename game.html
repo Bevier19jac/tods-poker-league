@@ -8,6 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
+  <script src="voice-config.js"></script>
 <style>
 :root{
   --gold:#f5c842;--gold2:#e8a800;
@@ -422,19 +423,7 @@ body.tv .tv-footer{display:block}
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-//  ELEVENLABS CONFIG — paste your API key here when ready
-//  Get one at https://elevenlabs.io  (free tier = plenty)
-// ═══════════════════════════════════════════════════════════
-var EL = {
-  key: 'sk_01272718ad0fc8d65f1e7130cbdcbec57efcba4b88ad9a86',
-  voices: {
-    announcer: 'EXAVITQu4vr4xnSDxMaL', // Adam - clear announcer
-    hype:      'pNInz6obpgDQGcFmaJgB',  // Adam v2 - energetic
-    deadpan:   'TxGEqnHWrfWFTfGW9XjX',  // Josh - dry/deadpan
-    roast:     'VR6AewLTigWG4xSOukaG'   // Arnold - sarcastic
-  }
-};
+// EL config loaded from voice-config.js (key injected by GitHub Actions)
 
 // ═══════════════════════════════════════════════════════════
 //  COMMENTARY LINES
