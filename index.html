@@ -460,10 +460,11 @@
 
 <script>
 var L=LEAGUE;
-// Auto-advance ng: if nextGame date is in the past (after 8PM game time), find next upcoming event from schedule
+function parseGameHour(t){var m=(t||'').match(/(\d+)(?::(\d+))?\s*(am|pm)/i);if(!m)return 20;var h=parseInt(m[1]),pm=m[3].toLowerCase()==='pm';if(pm&&h!==12)h+=12;if(!pm&&h===12)h=0;return h;}
+// Auto-advance ng: if nextGame date is in the past (after start time), find next upcoming event from schedule
 (function(){
   var cfg=L.nextGame;
-  var gameEnd=new Date(cfg.date+'T20:30:00'); // treat game as "done" 30 min after start
+  var _gh=parseGameHour(cfg.time||'8:00 PM');var gameEnd=new Date(cfg.date+'T'+String(_gh).padStart(2,'0')+':30:00'); // 30 min after start
   if(new Date()>gameEnd){
     var future=(L.schedule||[]).filter(function(ev){
       return !ev.completed && new Date(ev.date+'T20:00:00')>new Date();
@@ -565,8 +566,9 @@ function playerChip(p,i,size){
 // ── COUNTDOWN ──
 function pld(str,h){var p=str.split('-').map(Number);return new Date(p[0],p[1]-1,p[2],h||0,0,0);}
 function pad(n){return n<10?'0'+n:String(n);}
+var _gameHour=parseGameHour(ng.time);
 function tick(){
-  var diff=pld(ng.date,20)-new Date();
+  var diff=pld(ng.date,_gameHour)-new Date();
   if(diff<=0){['cd-d','cd-h','cd-m','cd-s'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='00';});return;}
   var e=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
   e('cd-d',pad(Math.floor(diff/86400000)));

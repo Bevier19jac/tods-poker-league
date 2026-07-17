@@ -173,7 +173,7 @@
       <div class="sdb-div"></div>
       <div class="sdb-item"><span class="sdb-val">Saturday</span><span class="sdb-lbl">Day</span></div>
       <div class="sdb-div"></div>
-      <div class="sdb-item"><span class="sdb-val" id="spec-time">TBD</span><span class="sdb-lbl">Start Time</span></div>
+      <div class="sdb-item"><span class="sdb-val" id="spec-time">5:00 PM</span><span class="sdb-lbl">Start Time</span></div>
       <div class="sdb-div"></div>
       <div class="sdb-item"><span class="sdb-val">Peachtree City</span><span class="sdb-lbl">Location</span></div>
     </div>
@@ -212,12 +212,12 @@
     <div class="info-card">
       <div class="ic-icon">📅</div>
       <div class="ic-title">Saturday Schedule</div>
-      <div class="ic-body">Being on a Saturday means <strong>no weeknight rush</strong>. Expect a noon-ish start, proper breaks, and a relaxed pace that lets the cards breathe. Contact Tod for the confirmed start time and final details.</div>
+      <div class="ic-body">Being on a Saturday means <strong>no weeknight rush</strong>. Cards in the air at <strong>5:00 PM</strong>, with food at <strong>7:00 PM</strong>. A relaxed pace that lets the cards breathe.</div>
     </div>
     <div class="info-card amber-border">
       <div class="ic-icon">💰</div>
       <div class="ic-title">Buy-In & Prize Pool</div>
-      <div class="ic-body">Buy-in: <strong>TBD — confirm with Tod</strong><br>Prize structure may differ from regular events. All players who are paid in on the leaderboard are eligible to enter.<br><br><span class="tbd-tag">Details TBD</span></div>
+      <div class="ic-body">Buy-in: <strong>$100 — no rebuys</strong>. Prize structure paid out to top finishers. All players on the leaderboard are eligible to enter.</div>
     </div>
   </div>
 
@@ -227,8 +227,8 @@
     <div class="rule-row"><div class="rule-num">01</div><div class="rule-text"><strong>Texas Hold'em — No Limit.</strong> Same game as always, deeper stacks and a slower blind structure to reward skill over luck.</div></div>
     <div class="rule-row"><div class="rule-num">02</div><div class="rule-text"><strong>Ardenlee Poker League Points.</strong> Points earned at the Mid-Season Tournament count toward the Season 20 standings just like a regular event — same multipliers, same system.</div></div>
     <div class="rule-row"><div class="rule-num">03</div><div class="rule-text"><strong>Starting Stacks.</strong> Starting stacks may be scaled differently than regular Thursday events. Final stack sizes will be confirmed by Tod before the event.</div></div>
-    <div class="rule-row"><div class="rule-num">04</div><div class="rule-text"><strong>Blind Structure.</strong> Extended levels — longer than Thursday nights. Expect more play and fewer gamble-shove situations at the start. <span class="tbd-tag">Exact levels TBD</span></div></div>
-    <div class="rule-row"><div class="rule-num">05</div><div class="rule-text"><strong>Breaks.</strong> Structured breaks between levels, including a longer dinner/food break. Saturday means we have all day.</div></div>
+    <div class="rule-row"><div class="rule-num">04</div><div class="rule-text"><strong>Blind Structure.</strong> Extended levels — longer than Thursday nights. Expect more play and fewer gamble-shove situations at the start.</div></div>
+    <div class="rule-row"><div class="rule-num">05</div><div class="rule-text"><strong>Food Break at 7 PM.</strong> Structured food break at 7:00 PM. No rebuys — chips you start with are all you get.</div></div>
     <div class="rule-row"><div class="rule-num">06</div><div class="rule-text"><strong>Registration.</strong> RSVP on the home page. Contact Tod directly for any questions. Space may be limited — commit early.</div></div>
   </div>
 
@@ -263,9 +263,9 @@
 
 <script>
 function pad(n){return n<10?'0'+n:String(n);}
-function pld(str,h){var p=str.split('-').map(Number);return new Date(p[0],p[1]-1,p[2],h||12,0,0);}
+function pld(str,h){var p=str.split('-').map(Number);return new Date(p[0],p[1]-1,p[2],h||17,0,0);}
 function tick(){
-  var diff=pld('2026-07-25',12)-new Date();
+  var diff=pld('2026-07-25',17)-new Date();
   if(diff<=0){['sc-d','sc-h','sc-m','sc-s'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='00';});return;}
   var e=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
   e('sc-d',pad(Math.floor(diff/86400000)));
@@ -274,8 +274,7 @@ function tick(){
   e('sc-s',pad(Math.floor(diff%60000/1000)));
 }
 tick();setInterval(tick,1000);
-var st=document.getElementById('spec-time');
-if(st)st.textContent='TBD';
+// Start time is set in HTML
 </script>
 </body>
 </html>
