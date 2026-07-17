@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Game Night — Ardenlee Poker League</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+  <script src="data.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
@@ -910,11 +911,23 @@ function iWin(){
 }
 
 function getDateKey(){
+  // Returns YYYYMMDD for use as a Firebase node key
   try{
     var next = (typeof LEAGUE !== 'undefined') ? LEAGUE.schedule.find(function(e){ return !e.completed; }) : null;
     if(next) return next.date.replace(/-/g,'');
   }catch(e){}
   return new Date().toISOString().slice(0,10).replace(/-/g,'');
+}
+
+function getFbKey(){
+  // Returns the RSVP key in the same format index.html uses: 'rsvp_YYYY_MM_DD'
+  // Firebase paths: RSVP at db.ref(fbKey), seats at db.ref('seats_'+fbKey)
+  try{
+    var next = (typeof LEAGUE !== 'undefined') ? LEAGUE.schedule.find(function(e){ return !e.completed; }) : null;
+    if(next) return 'rsvp_' + next.date.replace(/-/g,'_');
+  }catch(e){}
+  var d = new Date();
+  return 'rsvp_' + d.getFullYear() + '_' + String(d.getMonth()+1).padStart(2,'0') + '_' + String(d.getDate()).padStart(2,'0');
 }
 
 function endGame(winnerName){
@@ -958,11 +971,12 @@ function endGame(winnerName){
       db.ref().update(standUpd);
     }catch(e){ console.warn('endGame Firebase write:', e); }
 
-    // Reset RSVP + seats + game players after 60s so everyone can read the results first
+    // Reset seats + game players after 60s so everyone can read the results first
+    // (index.html auto-clears RSVPs at 9pm on game night)
+    var _fbKey = getFbKey();
     setTimeout(function(){
       try{
-        db.ref('rsvp_'+dateKey).remove();
-        db.ref('seats_'+dateKey).remove();
+        db.ref('seats_'+_fbKey).remove();
         db.ref('gameNight/players').remove();
       }catch(e){}
     }, 60000);
@@ -1009,13 +1023,10 @@ function bustPlayer(name, place){
 }
 
 function syncRsvpCount(){
-  // Pull from Firebase RSVP (same path as index.html uses)
+  // Pull from Firebase using the same key format as index.html
   if(!db) return;
-  var fbKey = (function(){
-    try{ var ng=window.ng||(typeof ng!=='undefined'?ng:null); if(ng&&ng.date) return 'rsvp_'+ng.date.replace(/-/g,''); }catch(e){}
-    return null;
-  })();
-  // Try reading existing seats or rsvp
+  var fbKey = getFbKey(); // e.g. 'rsvp_2026_07_25'
+  // Seats are stored at 'seats_rsvp_2026_07_25', RSVP at 'rsvp_2026_07_25'
   db.ref('seats_'+fbKey).once('value', function(snap){
     var seats = snap.val();
     if(seats && seats.length){
@@ -1025,8 +1036,8 @@ function syncRsvpCount(){
       showToast('Synced '+seats.length+' players from seat draw');
       return;
     }
-    // Fallback: read rsvp
-    if(fbKey) db.ref('rsvp_'+fbKey).once('value', function(s2){
+    // Fallback: read RSVP statuses ('in' entries)
+    db.ref(fbKey).once('value', function(s2){
       var rv=s2.val()||{};
       var update={};
       Object.keys(rv).forEach(function(n){ if(rv[n]==='in'&&!gamePlayers[n]) update[n]={status:'in',place:null}; });
