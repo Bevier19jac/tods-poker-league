@@ -413,7 +413,8 @@
   <div class="seat-inner">
     <div class="seat-head">
       <div class="seat-title">🃏 <span>Seat</span> Draw</div>
-      <button class="seat-draw-btn" id="seatDrawBtn" onclick="drawSeats()">🎲 Randomize Seats</button>
+      <button class="seat-draw-btn" id="seatDrawBtn" onclick="drawSeats()" style="display:none">🎲 Randomize Seats</button>
+      <div id="seatLock" style="font-size:0.75rem;color:var(--dim);display:none">🔒 Only Tod can randomize seats</div>
     </div>
     <div class="seat-hint" style="font-size:0.72rem;color:var(--dim);margin-bottom:0.8rem;">Seats are assigned from players marked <strong style="color:#4ade80">In</strong>. Click the button to randomize — everyone sees the same draw live. At <strong style="color:var(--gold)">7:45 PM</strong> on game night it auto-assigns if not already done.</div>
     <div class="seat-grid" id="seatGrid">
@@ -466,9 +467,7 @@ function playerChip(p,i,size){
   var inner=Math.round(size*0.62);
   var es=Math.round(inner*0.55);
   var suits=['♠','♥','♦','♣'];
-  var face=p.avatar
-    ?'<img src="'+p.avatar+'" style="width:'+inner+'px;height:'+inner+'px;object-fit:cover;border-radius:50%;border:1.5px solid rgba(255,255,255,0.35)" alt="'+p.name+'">'
-    :'<span style="font-size:'+es+'px;text-shadow:0 1px 3px rgba(0,0,0,0.7);line-height:1">'+suits[i%4]+'</span>';
+  var face='<img src="'+(p.avatar||'avatars/unknown1.png')+'" style="width:'+inner+'px;height:'+inner+'px;object-fit:cover;border-radius:50%;border:1.5px solid rgba(255,255,255,0.35)" alt="'+p.name+'" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<span style=&quot;font-size:'+es+'px;text-shadow:0 1px 3px rgba(0,0,0,0.7)&quot;>'+suits[i%4]+'</span>\'">';
   var chipDiv='<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,'+c.bg+' 54%,transparent 54%),repeating-conic-gradient('+c.rim+' 0deg 20deg,rgba(255,255,255,0.65) 20deg 40deg);box-shadow:0 0 0 1.5px '+c.rim+',0 3px 10px rgba(0,0,0,0.55)">'+face+'</div>';
   var vid=PLAYER_VIDEOS[p.name]||EMPTY_CHAIR;
   return '<div class="chip-vid-wrap" data-vid="'+vid+'" data-name="'+p.name+'" style="display:inline-flex">'+chipDiv+'</div>';
@@ -567,11 +566,22 @@ var myName='';
   });
   if(saved){myName=saved;}
 })();
+// Run after DOM is ready to set initial seat button visibility
+setTimeout(function(){updateSeatBtn&&updateSeatBtn();},0);
 function onNamePick(v){
   myName=v;try{localStorage.setItem('tpl_myname',v);}catch(e){}
   var h=document.getElementById('npbHint');
   if(h)h.textContent=v?'Click In, Maybe, or Out on your card below.':'Pick your name, then click In / Maybe / Out on your card';
   buildRsvpGrid();
+  updateSeatBtn();
+}
+function updateSeatBtn(){
+  var btn=document.getElementById('seatDrawBtn');
+  var lock=document.getElementById('seatLock');
+  if(!btn||!lock)return;
+  if(myName==='Tod'){btn.style.display='';lock.style.display='none';}
+  else if(myName){btn.style.display='none';lock.style.display='';}
+  else{btn.style.display='none';lock.style.display='none';}
 }
 
 // ── FIREBASE / RSVP ──
@@ -777,6 +787,7 @@ function renderSeats(seats){
   grid.innerHTML=html;
 }
 function drawSeats(){
+  if(myName!=='Tod'){alert('Only Tod can randomize seats.');return;}
   var ins=Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';});
   if(!ins.length){alert('No players marked In yet!');return;}
   var arr=ins.slice();
