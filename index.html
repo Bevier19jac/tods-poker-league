@@ -205,11 +205,15 @@
     .seat-title span{color:var(--gold)}
     .seat-draw-btn{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;border:none;padding:0.6rem 1.4rem;border-radius:20px;font-weight:700;font-size:0.82rem;cursor:pointer;letter-spacing:0.04em;transition:opacity 0.2s}
     .seat-draw-btn:hover{opacity:0.85}
-    .seat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.7rem}
-    .seat-card{background:var(--card);border:1px solid rgba(245,200,66,0.12);border-radius:12px;padding:0.9rem 1rem;display:flex;align-items:center;gap:0.75rem}
+    .seat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:0.6rem}
+    .seat-card{background:var(--card);border:1px solid rgba(245,200,66,0.12);border-radius:12px;padding:0.9rem 1rem;display:flex;align-items:center;gap:0.75rem;transition:border-color 0.2s}
     .seat-num{font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--gold);min-width:2ch;text-align:center}
     .seat-name{font-size:0.88rem;font-weight:600;color:var(--text)}
     .seat-empty{text-align:center;color:var(--faint);font-size:0.85rem;padding:1rem}
+    .table-group{margin-bottom:1.4rem}
+    .table-hdr{font-size:0.68rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;padding:0.3rem 0.75rem;border-radius:20px;margin-bottom:0.6rem;display:inline-flex;align-items:center;gap:0.4rem}
+    .tbl-adj{background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.25);color:var(--gold);border-radius:6px;width:1.8rem;height:1.8rem;font-size:1.1rem;cursor:pointer;font-weight:700;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+    .tbl-adj:hover{background:rgba(245,200,66,0.22)}
 
     /* ── PLAYER BUST PANEL ── */
     .ps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:0.6rem}
@@ -435,7 +439,15 @@
   <div class="seat-inner">
     <div class="seat-head">
       <div class="seat-title" id="seatSectionTitle">🃏 <span>Seat</span> Draw</div>
-      <button class="seat-draw-btn" id="seatDrawBtn" onclick="drawSeats()" style="display:none">🎲 Randomize Seats</button>
+      <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap">
+        <div id="tableCtrl" style="display:none;align-items:center;gap:0.45rem">
+          <span style="font-size:0.72rem;color:var(--dim)">Tables:</span>
+          <button class="tbl-adj" onclick="adjustTables(-1)">−</button>
+          <span id="tableCountDisplay" style="font-family:'JetBrains Mono',monospace;font-size:1rem;color:var(--gold);min-width:1ch;text-align:center">1</span>
+          <button class="tbl-adj" onclick="adjustTables(1)">+</button>
+        </div>
+        <button class="seat-draw-btn" id="seatDrawBtn" onclick="drawSeats()" style="display:none">🎲 Randomize Seats</button>
+      </div>
       <div id="seatLock" style="font-size:0.75rem;color:var(--dim);display:none">🔒 Only Tod can randomize seats</div>
     </div>
     <!-- Seat grid (shown pre-game) -->
@@ -625,10 +637,18 @@ function onNamePick(v){
 function updateSeatBtn(){
   var btn=document.getElementById('seatDrawBtn');
   var lock=document.getElementById('seatLock');
+  var tc=document.getElementById('tableCtrl');
   if(!btn||!lock)return;
-  if(myName==='Tod'){btn.style.display='';lock.style.display='none';}
-  else if(myName){btn.style.display='none';lock.style.display='';}
-  else{btn.style.display='none';lock.style.display='none';}
+  if(myName==='Tod'){
+    btn.style.display=''; lock.style.display='none';
+    if(tc) tc.style.display='flex';
+  } else if(myName){
+    btn.style.display='none'; lock.style.display='';
+    if(tc) tc.style.display='none';
+  } else {
+    btn.style.display='none'; lock.style.display='none';
+    if(tc) tc.style.display='none';
+  }
 }
 
 // ── FIREBASE / RSVP ──
@@ -693,6 +713,18 @@ function startFirebaseListeners(){
       var seats=snap.val();if(seats&&seats.length)renderSeats(seats);
     });
   }catch(e){console.warn('Firebase seats error:',e.message);}
+  // Table count — Tod sets it, everyone sees color-coded tables
+  try{
+    firebase.database().ref('tableCount_'+fbKey).on('value',function(snap){
+      var tc=snap.val();
+      if(tc&&tc>0){
+        currentTableCount=tc;
+        var el=document.getElementById('tableCountDisplay');
+        if(el) el.textContent=tc;
+        if(currentSeats.length) renderSeats(currentSeats);
+      }
+    });
+  }catch(e){console.warn('Firebase tableCount error:',e.message);}
   // Game night live tracking
   startGameNightListeners();
 }
@@ -865,15 +897,62 @@ function shouldAutoScroll(){
   var now=new Date();
   return now>=cutoff&&now<nextDay;
 }
+// ── TABLE LAYOUT ──
+var TABLE_COLORS=[
+  {bg:'rgba(34,197,94,0.1)',  border:'rgba(34,197,94,0.4)',  text:'#4ade80'},  // green
+  {bg:'rgba(59,130,246,0.1)', border:'rgba(59,130,246,0.4)', text:'#60a5fa'},  // blue
+  {bg:'rgba(245,158,11,0.1)', border:'rgba(245,158,11,0.4)', text:'#fbbf24'},  // amber
+  {bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.4)', text:'#c084fc'},  // purple
+  {bg:'rgba(239,68,68,0.1)',  border:'rgba(239,68,68,0.4)',  text:'#f87171'},  // red
+];
+var currentSeats=[], currentTableCount=1;
+
+function autoTableCount(n){
+  if(n<=10) return 1;
+  if(n<=18) return 2;
+  if(n<=27) return 3;
+  return Math.ceil(n/9);
+}
+function getTableRanges(total,tc){
+  var out=[]; var seat=1;
+  for(var t=0;t<tc;t++){
+    var size=Math.ceil((total-seat+1)/(tc-t));
+    out.push({num:t+1, start:seat, end:Math.min(seat+size-1,total)});
+    seat+=size;
+  }
+  return out;
+}
+function adjustTables(delta){
+  var ins=Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';});
+  var max=Math.max(1,Math.floor((ins.length||currentSeats.length)/4));
+  currentTableCount=Math.max(1,Math.min(max,currentTableCount+delta));
+  var el=document.getElementById('tableCountDisplay');
+  if(el) el.textContent=currentTableCount;
+  if(currentSeats.length) renderSeats(currentSeats);
+  if(window._firebaseReady) try{firebase.database().ref('tableCount_'+fbKey).set(currentTableCount);}catch(e){}
+}
+
 function renderSeats(seats){
   var grid=document.getElementById('seatGrid');if(!grid)return;
   if(!seats||!seats.length){
     grid.innerHTML='<div class="seat-empty">No seat draw yet.</div>';
     return;
   }
+  currentSeats=seats;
+  var ranges=getTableRanges(seats.length, currentTableCount);
   var html='';
-  seats.forEach(function(name,i){
-    html+='<div class="seat-card"><div class="seat-num">'+(i+1)+'</div><div class="seat-name">'+name+'</div></div>';
+  ranges.forEach(function(r){
+    var c=TABLE_COLORS[(r.num-1)%TABLE_COLORS.length];
+    html+='<div class="table-group">';
+    html+='<div class="table-hdr" style="background:'+c.bg+';border:1px solid '+c.border+';color:'+c.text+'">TABLE '+r.num+' &nbsp;·&nbsp; Seats '+r.start+'–'+r.end+'</div>';
+    html+='<div class="seat-grid">';
+    for(var s=r.start;s<=r.end;s++){
+      html+='<div class="seat-card" style="border-color:'+c.border+'">';
+      html+='<div class="seat-num" style="color:'+c.text+'">'+s+'</div>';
+      html+='<div class="seat-name">'+escH(seats[s-1])+'</div>';
+      html+='</div>';
+    }
+    html+='</div></div>';
   });
   grid.innerHTML=html;
   if(shouldAutoScroll()){
@@ -881,15 +960,25 @@ function renderSeats(seats){
     if(sec)setTimeout(function(){sec.scrollIntoView({behavior:'smooth',block:'start'});},400);
   }
 }
+
 function drawSeats(){
   if(myName!=='Tod'){alert('Only Tod can randomize seats.');return;}
   var ins=Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';});
   if(!ins.length){alert('No players marked In yet!');return;}
+  // Auto-set table count on first draw based on player count
+  var el=document.getElementById('tableCountDisplay');
+  if(currentTableCount===1 && ins.length>1){
+    currentTableCount=autoTableCount(ins.length);
+    if(el) el.textContent=currentTableCount;
+  }
   var arr=ins.slice();
   for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=arr[i];arr[i]=arr[j];arr[j]=t;}
   renderSeats(arr);
   if(fbLive&&window._firebaseReady){
-    try{firebase.database().ref('seats_'+fbKey).set(arr);}catch(e){console.warn('Seat save error:',e.message);}
+    try{
+      firebase.database().ref('seats_'+fbKey).set(arr);
+      firebase.database().ref('tableCount_'+fbKey).set(currentTableCount);
+    }catch(e){console.warn('Seat save error:',e.message);}
   }
 }
 window.drawSeats=drawSeats;
