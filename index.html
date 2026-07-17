@@ -416,7 +416,7 @@
       <button class="seat-draw-btn" id="seatDrawBtn" onclick="drawSeats()" style="display:none">🎲 Randomize Seats</button>
       <div id="seatLock" style="font-size:0.75rem;color:var(--dim);display:none">🔒 Only Tod can randomize seats</div>
     </div>
-    <div class="seat-hint" style="font-size:0.72rem;color:var(--dim);margin-bottom:0.8rem;">Seats are assigned from players marked <strong style="color:#4ade80">In</strong>. Click the button to randomize — everyone sees the same draw live. At <strong style="color:var(--gold)">7:45 PM</strong> on game night it auto-assigns if not already done.</div>
+    <div class="seat-hint" style="font-size:0.72rem;color:var(--dim);margin-bottom:0.8rem;">Seats are assigned from players marked <strong style="color:#4ade80">In</strong>. Click the button to randomize — everyone sees the same draw live. At <strong style="color:var(--gold)">7:55 PM</strong> on game night it auto-assigns. Tod can re-randomize anytime using the button above.</div>
     <div class="seat-grid" id="seatGrid">
       <div class="seat-empty" id="seatEmpty">No seat draw yet — click Randomize Seats to assign seats to all players marked In.</div>
     </div>
@@ -838,7 +838,7 @@ function drawSeats(){
 }
 window.drawSeats=drawSeats;
 
-// ── AUTO SEAT DRAW AT 7:45 PM ON GAME NIGHT ──
+// ── AUTO SEAT DRAW AT 7:55 PM ON GAME NIGHT ──
 (function(){
   var p=ng.date.split('-').map(Number);
   var gameDate=new Date(p[0],p[1]-1,p[2]);
@@ -847,7 +847,7 @@ window.drawSeats=drawSeats;
   if(!isGameNight)return;
   function checkAutoSeat(){
     var n=new Date();
-    if(n.getHours()===19&&n.getMinutes()>=45){
+    if(n.getHours()===19&&n.getMinutes()>=55){
       if(fbLive&&window._firebaseReady){
         firebase.database().ref('seats_'+fbKey).once('value',function(snap){
           if(!snap.val()){drawSeats();}
