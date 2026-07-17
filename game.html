@@ -114,16 +114,20 @@ button{cursor:pointer;font-family:'Inter',sans-serif}
 .pc-status.out{color:#f87171}
 .pc-status.winner{color:var(--gold)}
 .pc-place{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--dim);margin-top:0.15rem}
-.bust-btn{position:absolute;bottom:0.4rem;right:0.4rem;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;font-size:0.62rem;font-weight:700;padding:0.15rem 0.4rem;cursor:pointer}
+.bust-btn{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;font-size:0.62rem;font-weight:700;padding:0.15rem 0.4rem;cursor:pointer;position:absolute;top:0.4rem;right:0.4rem}
 .bust-btn:hover{background:rgba(239,68,68,0.3)}
+.bust-self{position:static;display:block;width:100%;margin-top:0.6rem;font-size:0.78rem;padding:0.4rem;text-align:center;background:rgba(239,68,68,0.22);border-color:rgba(239,68,68,0.55)}
+.bust-self.win-btn{background:rgba(245,200,66,0.22);border-color:rgba(245,200,66,0.55);color:var(--gold);font-size:0.88rem;padding:0.5rem}
+.bust-self.win-btn:hover{background:rgba(245,200,66,0.38)}
+.bust-self:hover{background:rgba(239,68,68,0.4)}
+.player-card.me{border-color:rgba(245,200,66,0.5);box-shadow:0 0 0 1px rgba(245,200,66,0.2)}
 .players-empty{padding:2rem;text-align:center;color:var(--faint);font-size:0.85rem}
-/* Bust input row */
-.bust-form{display:none;background:rgba(239,68,68,0.06);border-top:1px solid rgba(239,68,68,0.15);padding:0.5rem;margin-top:0.5rem;border-radius:0 0 8px 8px}
-.bust-form.open{display:block}
-.bust-form label{font-size:0.65rem;color:var(--dim);display:block;margin-bottom:0.25rem}
-.bust-form select{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--text);font-size:0.8rem;padding:0.3rem 0.4rem;outline:none}
-.bust-form select:focus{border-color:var(--red)}
-.bust-form-btns{display:flex;gap:0.4rem;margin-top:0.4rem}
+/* Finish order strip */
+.finish-order{padding:0.5rem 1rem 1rem}
+.finish-title{font-size:0.68rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.4rem}
+.finish-row{display:flex;align-items:center;gap:0.5rem;padding:0.22rem 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.8rem}
+.finish-place{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--gold2);width:2rem;flex-shrink:0}
+.finish-name{flex:1;color:var(--text)}
 
 /* ═══════════════════════════════════════════════
    PAYOUTS TAB
@@ -313,6 +317,7 @@ body.tv .tv-footer{display:block}
   <div class="players-grid" id="playersGrid">
     <div class="players-empty">Loading players...</div>
   </div>
+  <div class="finish-order" id="finishOrder"></div>
 </div>
 
 <!-- ════════════════════════════
@@ -395,10 +400,13 @@ body.tv .tv-footer{display:block}
 <div class="winner-overlay" id="winnerOverlay">
   <canvas class="winner-confetti" id="confettiCanvas"></canvas>
   <div class="winner-trophy">🏆</div>
-  <div class="winner-title">Champion</div>
+  <div class="winner-title">Tonight's Champion</div>
   <div class="winner-name" id="winnerName">—</div>
   <div class="winner-stats" id="winnerStats"></div>
-  <button class="close-winner" onclick="closeWinner()">Close &amp; Update Stats</button>
+  <div id="winnerPublished" style="margin:0.5rem 0;font-size:0.75rem;color:#4ade80;display:none">✅ Results published &amp; standings updated</div>
+  <div id="winnerNextEvt" style="margin:0.8rem 0 0.4rem;font-size:0.78rem;color:var(--dim)"></div>
+  <div id="winnerCountdown" style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:var(--gold);margin-bottom:1rem"></div>
+  <button class="close-winner" onclick="closeWinner()">Close</button>
 </div>
 
 <!-- Blind Structure Editor -->
@@ -488,9 +496,24 @@ var COMMENTARY = {
   ]
 };
 
-// Points structure by finish position
-var POINTS = [10, 7, 5, 4, 3, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-function getPoints(place, totalPlayers) { return POINTS[Math.min(place - 1, POINTS.length - 1)] || 1; }
+// Season points formula (reverse-engineered from historical data):
+//   Non-ITM:  300 × (totalPlayers - place + 1)
+//   ITM:      firstNonITM + 400 × (paidPlaces - place + 1)
+//   Winner:   2nd-place points + 700
+function calcSeasonPoints(place, totalPlayers, paidPlaces){
+  paidPlaces = Math.min(paidPlaces || 3, totalPlayers);
+  var firstNonITM = 300 * (totalPlayers - paidPlaces); // points for (paidPlaces+1)th
+  if(place > paidPlaces){
+    return 300 * (totalPlayers - place + 1);
+  } else if(place === 1){
+    var runnerUp = firstNonITM + 400 * (paidPlaces - 1);
+    return runnerUp + 700;
+  } else {
+    return firstNonITM + 400 * (paidPlaces - place + 1);
+  }
+}
+// Legacy alias (used in calcPayouts payout table)
+function getPoints(place, totalPlayers){ return calcSeasonPoints(place, totalPlayers, Math.min(Number((document.getElementById('pPaidPlaces')||{}).value)||3, totalPlayers)); }
 
 // Payout % splits by paid places
 var SPLITS = {
@@ -524,7 +547,20 @@ var luAutoInt = null;
 (function init(){
   // UI mode setup
   if(isTV){ document.body.classList.add('tv'); document.getElementById('badgeTV').style.display=''; }
-  if(isAdmin){ document.getElementById('adminBar').classList.add('visible'); document.getElementById('badgeTod').style.display=''; document.getElementById('noStructBtn').style.display=''; document.getElementById('noStructText').textContent='Click below to configure blind levels before the game starts.'; }
+  if(isAdmin){
+    document.getElementById('adminBar').classList.add('visible');
+    document.getElementById('badgeTod').style.display='';
+    document.getElementById('noStructBtn').style.display='';
+    document.getElementById('noStructText').textContent='Click below to configure blind levels before the game starts.';
+  } else {
+    // Non-Tod users: hide payout settings editor (read-only view only)
+    var ps = document.getElementById('payoutSettingsSection');
+    if(ps) ps.style.display='none';
+    // Disable all inputs/selects in payout tab
+    document.querySelectorAll('#tab-payouts input, #tab-payouts select').forEach(function(el){
+      el.disabled = true; el.style.opacity='0.5'; el.style.cursor='default';
+    });
+  }
 
   // Firebase
   if(window._firebaseReady){
@@ -786,76 +822,188 @@ function renderPlayers(){
   var names = Object.keys(gamePlayers);
   if(!names.length){ grid.innerHTML='<div class="players-empty">No players loaded. Set up RSVPs on the home page first.</div>'; return; }
 
+  var myName = (localStorage.getItem('tpl_myname')||'').trim();
   var inCount=0, outCount=0;
   names.forEach(function(n){ var p=gamePlayers[n]; if(p.status==='in'||p.status==='winner')inCount++; else outCount++; });
   document.getElementById('statsIn').textContent  = inCount;
   document.getElementById('statsOut').textContent = outCount;
 
-  // Sort: in first, then by place (ascending) for out
+  // Sort: still-in first (alpha), then out sorted by place descending (most recently eliminated first)
   names.sort(function(a,b){
     var pa=gamePlayers[a], pb=gamePlayers[b];
-    if((pa.status==='in'||pa.status==='winner')&&pb.status==='out') return -1;
-    if(pa.status==='out'&&(pb.status==='in'||pb.status==='winner')) return 1;
-    if(pa.place&&pb.place) return pa.place-pb.place;
+    var aIn=(pa.status==='in'||pa.status==='winner'), bIn=(pb.status==='in'||pb.status==='winner');
+    if(aIn&&!bIn) return -1;
+    if(!aIn&&bIn)  return 1;
+    if(!aIn&&!bIn) return (pb.place||0)-(pa.place||0); // highest place# (last out) first
     return a.localeCompare(b);
   });
 
+  var realInCount = names.filter(function(n){ return gamePlayers[n].status==='in'; }).length;
   var html='';
   names.forEach(function(name){
     var p = gamePlayers[name];
-    var isIn    = p.status==='in';
-    var isWin   = p.status==='winner';
-    var isOut   = p.status==='out';
-    var cls     = isIn ? 'active' : isWin ? 'winner' : 'out';
-    var statusTxt = isWin ? '🏆 WINNER' : isIn ? 'Still In' : 'Eliminated';
+    var isIn  = p.status==='in';
+    var isWin = p.status==='winner';
+    var cls   = isIn ? 'active' : isWin ? 'winner' : 'out';
+    var isMe  = name === myName;
+    if(isMe && isIn) cls += ' me';
+    var statusTxt = isWin ? '🏆 WINNER' : isIn ? (isMe ? '▶ You — Still In' : 'Still In') : 'Eliminated';
     var statusCls = isWin ? 'winner' : isIn ? 'in' : 'out';
     var placeStr  = p.place ? ordinal(p.place)+' place' : '';
     html += '<div class="player-card '+cls+'" id="pc-'+esc(name)+'">';
     html += '<div class="pc-name">'+esc(name)+'</div>';
     html += '<div class="pc-status '+statusCls+'">'+statusTxt+'</div>';
     if(placeStr) html += '<div class="pc-place">'+placeStr+'</div>';
-    if(isIn){
-      html += '<button class="bust-btn" onclick="toggleBustForm(\''+esc(name)+'\')">I\'m Out</button>';
-      html += '<div class="bust-form" id="bust-'+esc(name)+'">';
-      html += '<label>Finish position:</label>';
-      html += '<select id="bustSel-'+esc(name)+'">'+placeOptions(names.length)+'</select>';
-      html += '<div class="bust-form-btns">';
-      html += '<button class="btn btn-danger btn-xs" onclick="confirmBust(\''+esc(name)+'\')">Confirm</button>';
-      html += '<button class="btn btn-outline btn-xs" onclick="toggleBustForm(\''+esc(name)+'\')">Cancel</button>';
-      html += '</div></div>';
+    // Self-report button — only on the player's own card
+    if(isIn && isMe){
+      if(realInCount <= 2){
+        html += '<button class="bust-btn bust-self win-btn" onclick="iWin()">🏆 I Win!</button>';
+      } else {
+        html += '<button class="bust-btn bust-self" onclick="selfBust()">☠ I\'m Out</button>';
+      }
     }
     html += '</div>';
   });
   grid.innerHTML = html;
+
+  renderFinishOrder();
 }
 
-function toggleBustForm(name){
-  var f = document.getElementById('bust-'+name);
-  if(f) f.classList.toggle('open');
+function renderFinishOrder(){
+  var el = document.getElementById('finishOrder');
+  if(!el) return;
+  var out = Object.entries(gamePlayers)
+    .filter(function(e){ return e[1].place; })
+    .sort(function(a,b){ return a[1].place - b[1].place; }); // 1st, 2nd, 3rd...
+  if(!out.length){ el.innerHTML=''; return; }
+  var html = '<div class="finish-title">📋 Finish Order</div>';
+  out.forEach(function(e){
+    var name=e[0], place=e[1].place;
+    html += '<div class="finish-row"><span class="finish-place">'+ordinal(place)+'</span><span class="finish-name">'+esc(name)+'</span></div>';
+  });
+  el.innerHTML = html;
 }
 
-function confirmBust(name){
-  var sel = document.getElementById('bustSel-'+name);
-  if(!sel) return;
-  var place = parseInt(sel.value);
-  var totalIn = Object.keys(gamePlayers).filter(function(n){ return gamePlayers[n].status==='in'; }).length;
+function selfBust(){
+  var myName = (localStorage.getItem('tpl_myname')||'').trim();
+  if(!myName || !gamePlayers[myName] || gamePlayers[myName].status !== 'in') return;
+  var inCount = Object.keys(gamePlayers).filter(function(n){ return gamePlayers[n].status==='in'; }).length;
+  var place = inCount; // still-in count == their finish position
+  if(!confirm('Confirm you busted out in ' + ordinal(place) + ' place?')) return;
+  bustPlayer(myName, place);
+}
 
-  var update = {};
-  if(place === 1){
-    update[name] = { status:'winner', place:1 };
-  } else {
-    update[name] = { status:'out', place:place };
+function iWin(){
+  var myName = (localStorage.getItem('tpl_myname')||'').trim();
+  if(!myName || !gamePlayers[myName] || gamePlayers[myName].status !== 'in') return;
+  var inPlayers = Object.keys(gamePlayers).filter(function(n){ return gamePlayers[n].status==='in'; });
+  if(inPlayers.length > 2){ showToast('Use "I\'m Out" until 2 players remain'); return; }
+  var otherPlayer = inPlayers.find(function(n){ return n !== myName; });
+  if(!confirm('🏆 Confirm you won the tournament?')) return;
+  var upd = {};
+  upd[myName] = { status:'winner', place:1 };
+  if(otherPlayer) upd[otherPlayer] = { status:'out', place:2 };
+  if(playersRef) try{ playersRef.update(upd); }catch(e){}
+  Object.assign(gamePlayers, upd);
+  renderPlayers(); calcPayouts();
+  endGame(myName);
+}
+
+function getDateKey(){
+  try{
+    var next = (typeof LEAGUE !== 'undefined') ? LEAGUE.schedule.find(function(e){ return !e.completed; }) : null;
+    if(next) return next.date.replace(/-/g,'');
+  }catch(e){}
+  return new Date().toISOString().slice(0,10).replace(/-/g,'');
+}
+
+function endGame(winnerName){
+  var allNames = Object.keys(gamePlayers);
+  var totalPlayers = allNames.length || 1;
+  var paidPlaces = Math.min(Number(payoutSettings.paidPlaces)||3, totalPlayers);
+  var buyIn    = Number(payoutSettings.buyIn)||100;
+  var rebuys   = Number(payoutSettings.rebuys)||0;
+  var rebuyAmt = Number(payoutSettings.rebuyAmt)||buyIn;
+  var totalPot = totalPlayers*buyIn + rebuys*rebuyAmt;
+  var splits   = SPLITS[Math.min(paidPlaces,5)] || SPLITS[3];
+
+  // Build full results array
+  var results = allNames.map(function(n){
+    var p = gamePlayers[n];
+    var place = p.place || (p.status==='winner' ? 1 : totalPlayers);
+    var isITM = place <= paidPlaces;
+    var pts  = calcSeasonPoints(place, totalPlayers, paidPlaces);
+    var cash = isITM ? Math.round(totalPot*(splits[place-1]||0)/100) : 0;
+    return { name:n, place:place, points:pts, winnings:cash, itm:isITM };
+  });
+  results.sort(function(a,b){ return a.place - b.place; });
+
+  // Write to Firebase
+  if(db){
+    var dateKey = getDateKey();
+    var evtLabel = (typeof LEAGUE !== 'undefined' && LEAGUE.schedule)
+      ? (LEAGUE.schedule.find(function(e){ return !e.completed; })||{}).label || 'Event'
+      : 'Event';
+    try{
+      db.ref('completedEvents/'+dateKey).set({
+        date: dateKey, label: evtLabel,
+        playerCount: totalPlayers, winner: winnerName,
+        results: results, timestamp: Date.now()
+      });
+      // Snapshot last-game stats per player into Firebase standings
+      var standUpd = {};
+      results.forEach(function(r){
+        standUpd['gameNightStandings/'+r.name] = { lastPoints:r.points, lastPlace:r.place, lastGame:dateKey };
+      });
+      db.ref().update(standUpd);
+    }catch(e){ console.warn('endGame Firebase write:', e); }
+
+    // Reset RSVP + seats + game players after 60s so everyone can read the results first
+    setTimeout(function(){
+      try{
+        db.ref('rsvp_'+dateKey).remove();
+        db.ref('seats_'+dateKey).remove();
+        db.ref('gameNight/players').remove();
+      }catch(e){}
+    }, 60000);
   }
 
+  // Show winner overlay (with results context)
+  showWinner(winnerName, results, paidPlaces);
+}
+
+var nextEvtInt = null;
+function startNextEventCountdown(dateStr, timeStr){
+  if(nextEvtInt) clearInterval(nextEvtInt);
+  var timeParts = (timeStr||'5:00 PM').match(/(\d+):(\d+)\s*(AM|PM)/i) || [];
+  var hr = Number(timeParts[1]||17);
+  var mn = Number(timeParts[2]||0);
+  if((timeParts[3]||'').toUpperCase()==='PM' && hr < 12) hr += 12;
+  function update(){
+    var target = new Date(dateStr);
+    target.setHours(hr, mn, 0, 0);
+    var diff = target - new Date();
+    var el = document.getElementById('winnerCountdown');
+    if(!el) return;
+    if(diff <= 0){ el.textContent = '🎉 Game Night is NOW!'; return; }
+    var d = Math.floor(diff/86400000);
+    var h = Math.floor((diff%86400000)/3600000);
+    var m = Math.floor((diff%3600000)/60000);
+    el.textContent = d+'d '+h+'h '+m+'m until next game';
+  }
+  update();
+  nextEvtInt = setInterval(update, 60000);
+}
+
+function bustPlayer(name, place){
+  var update = {};
+  update[name] = (place === 1) ? { status:'winner', place:1 } : { status:'out', place:place };
   if(playersRef) try{ playersRef.update(update); }catch(e){}
   gamePlayers[name] = update[name];
   renderPlayers();
   calcPayouts();
-
-  // Announce knockout
   var koLine = pickLine(COMMENTARY.knockout, {P:name, PLACE:ordinal(place)});
   setTimeout(function(){ speak(koLine[0], koLine[1]); }, 500);
-
   checkWinner();
   showToast(name + ' busted in ' + ordinal(place) + ' place');
 }
@@ -889,37 +1037,44 @@ function syncRsvpCount(){
 
 function checkWinner(){
   var names = Object.keys(gamePlayers);
-  var inPlayers = names.filter(function(n){ return gamePlayers[n].status==='in'; });
   var winner = names.find(function(n){ return gamePlayers[n].status==='winner'; });
-  if(winner){
-    showWinner(winner); return;
-  }
-  if(inPlayers.length===1 && names.length>1){
-    // Auto-set winner
-    var w = inPlayers[0];
-    var upd = {}; upd[w]={status:'winner',place:1};
-    if(playersRef) try{playersRef.update(upd);}catch(e){}
-    gamePlayers[w]={status:'winner',place:1};
-    renderPlayers(); calcPayouts();
-    showWinner(w);
+  // Only show overlay if a winner has been declared via "I Win" button
+  if(winner && !document.getElementById('winnerOverlay').classList.contains('show')){
+    showWinner(winner, null, null);
   }
 }
 
 // ═══════════════════════════════════════════════════════════
 //  WINNER CELEBRATION
 // ═══════════════════════════════════════════════════════════
-function showWinner(name){
+function showWinner(name, results, paidPlaces){
   document.getElementById('winnerName').textContent = name;
-  // Build stats
-  var p = payoutSettings;
-  var totalPot = (Number(p.players)||1)*Number(p.buyIn) + (Number(p.rebuys)||0)*Number(p.rebuyAmt||p.buyIn);
-  var paidPlaces = Math.min(Number(p.paidPlaces)||3, Object.keys(gamePlayers).length);
-  var splits = SPLITS[paidPlaces] || SPLITS[3];
-  var winCash = Math.round(totalPot * splits[0] / 100);
-  var winPts  = getPoints(1, Object.keys(gamePlayers).length);
+  var allNames = Object.keys(gamePlayers);
+  var totalPlayers = allNames.length || 1;
+  var pp = (paidPlaces != null) ? paidPlaces : Math.min(Number(payoutSettings.paidPlaces)||3, totalPlayers);
+  var buyIn    = Number(payoutSettings.buyIn)||100;
+  var rebuys   = Number(payoutSettings.rebuys)||0;
+  var rebuyAmt = Number(payoutSettings.rebuyAmt)||buyIn;
+  var totalPot = totalPlayers*buyIn + rebuys*rebuyAmt;
+  var splits   = SPLITS[Math.min(pp,5)] || SPLITS[3];
+  var winCash  = Math.round(totalPot * splits[0] / 100);
+  var winPts   = calcSeasonPoints(1, totalPlayers, pp);
   document.getElementById('winnerStats').innerHTML =
     '<div class="ws-item"><div class="ws-label">Prize</div><div class="ws-val">'+fmtMoney(winCash)+'</div></div>'+
-    '<div class="ws-item"><div class="ws-label">Points</div><div class="ws-val">'+winPts+' pts</div></div>';
+    '<div class="ws-item"><div class="ws-label">Season Pts</div><div class="ws-val">+'+winPts.toLocaleString()+'</div></div>'+
+    '<div class="ws-item"><div class="ws-label">Players</div><div class="ws-val">'+totalPlayers+'</div></div>';
+
+  // Published notice
+  var pubEl = document.getElementById('winnerPublished');
+  if(pubEl) pubEl.style.display = results ? '' : 'none';
+
+  // Next event countdown
+  if(typeof LEAGUE !== 'undefined' && LEAGUE.nextGame){
+    var ng = LEAGUE.nextGame;
+    var nextEl = document.getElementById('winnerNextEvt');
+    if(nextEl) nextEl.textContent = '🗓 Next: '+ng.label+' — '+ng.date+' at '+(ng.time||'5:00 PM');
+    startNextEventCountdown(ng.date, ng.time);
+  }
 
   document.getElementById('winnerOverlay').classList.add('show');
   startConfetti();
@@ -932,6 +1087,7 @@ function showWinner(name){
 function closeWinner(){
   document.getElementById('winnerOverlay').classList.remove('show');
   stopConfetti();
+  if(nextEvtInt){ clearInterval(nextEvtInt); nextEvtInt=null; }
 }
 
 // ═══════════════════════════════════════════════════════════
