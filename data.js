@@ -82,7 +82,7 @@ const LEAGUE = {
     { name: "Jay",     fullName: "Jay Rose",          events: 9,  points: 28900, wins: 1, cashes: 2,  avgPlace: 11.1, avatar: "avatars/jay.png"     },
     { name: "Philo",   fullName: "Philo Mitman",      events: 12, points: 28600, wins: 0, cashes: 1,  avgPlace: 13.0, avatar: "avatars/philo.png"   },
     { name: "Nate",    fullName: "Nate Woods",        events: 9,  points: 27600, wins: 0, cashes: 1,  avgPlace: 11.0, avatar: "avatars/nate.png"    },
-    { name: "Matt",    fullName: "Matt Therriault",   events: 8,  points: 25500, wins: 0, cashes: 0,  avgPlace: 10.9 },
+    { name: "Matt",    fullName: "Matt Therriault",   events: 8,  points: 25500, wins: 0, cashes: 0,  avgPlace: 10.9, avatar: "avatars/matt.png" },
     { name: "Eric",    fullName: "Eric Cunningham",   events: 11, points: 23400, wins: 0, cashes: 0,  avgPlace: 13.5, avatar: "avatars/eric.png"    },
     { name: "Toner",   fullName: "Tim Toner",         events: 8,  points: 23300, wins: 0, cashes: 1,  avgPlace: 11.5, avatar: "avatars/tim_t.png"   },
     { name: "Ryan",    fullName: "Ryan Zondervan",    events: 6,  points: 23150, wins: 0, cashes: 3,  avgPlace: 9.0  },

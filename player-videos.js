@@ -3,7 +3,7 @@
  * Click any .chip-vid-wrap on any page to open centered popup.
  */
 
-var EMPTY_CHAIR='https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260702_213835_09f67193-0851-4ebd-bc57-e5f5c59e9867.mp4';
+var EMPTY_CHAIR='https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260703_135018_f4b08c46-0397-469a-a0be-488a04fa05d5.mp4';
 var PLAYER_VIDEOS={
   'Tod':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260703_162117_4b94b2cb-f9ef-477b-8788-ae755d21f253.mp4',
   'Guy':    'https://d8j0ntlcm91z4.cloudfront.net/user_3F5HdjQhOnyB0kWRi8OozAtEPlL/hf_20260703_162101_4c39a09f-d640-4818-bf64-9cb291e103f4.mp4',
