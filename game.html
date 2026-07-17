@@ -327,14 +327,15 @@ body.tv .tv-footer{display:block}
 <div class="tab-pane" id="tab-payouts">
   <div class="payout-wrap">
 
-    <!-- Settings (Tod only, or always visible if set) -->
-    <div id="payoutSettingsSection" class="payout-section">
+    <!-- Tod-only: just the 2 things the app can't know itself -->
+    <div id="payoutSettingsSection" class="payout-section" style="display:none">
       <div class="section-hd">Tournament Settings</div>
-      <div class="payout-inputs">
-        <div class="fi"><label>Buy-In ($)</label><input type="number" id="pBuyIn" value="100" min="0" onchange="calcPayouts()"></div>
-        <div class="fi"><label>Starting Players</label><input type="number" id="pPlayers" value="10" min="1" onchange="calcPayouts()"></div>
+      <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-bottom:1rem;font-size:0.82rem">
+        <span style="color:var(--dim)">Buy-In: <strong id="payInfoBuyIn" style="color:var(--gold)">$100</strong></span>
+        <span style="color:var(--dim)">Players: <strong id="payInfoPlayers" style="color:var(--gold)">—</strong></span>
+      </div>
+      <div class="payout-inputs" style="grid-template-columns:1fr 1fr">
         <div class="fi"><label>Rebuys</label><input type="number" id="pRebuys" value="0" min="0" onchange="calcPayouts()"></div>
-        <div class="fi"><label>Rebuy Amount ($)</label><input type="number" id="pRebuyAmt" value="100" min="0" onchange="calcPayouts()"></div>
         <div class="fi"><label>Places Paid</label>
           <select id="pPaidPlaces" onchange="calcPayouts()">
             <option value="1">1 place</option>
@@ -344,23 +345,14 @@ body.tv .tv-footer{display:block}
             <option value="5">5 places</option>
           </select>
         </div>
-        <div class="fi"><label>Payout Split</label>
-          <select id="pSplit" onchange="calcPayouts()">
-            <option value="auto">Auto (standard %)</option>
-            <option value="custom">Custom per place</option>
-          </select>
-        </div>
       </div>
-      <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
-        <button class="btn btn-gold btn-sm" onclick="savePayoutSettings()">Save Settings</button>
-        <button class="btn btn-green-soft btn-sm" id="btnSyncRsvp" onclick="syncRsvpCount()">↻ Sync from RSVPs</button>
-      </div>
+      <button class="btn btn-gold btn-sm" onclick="savePayoutSettings()">💾 Save &amp; Publish</button>
     </div>
 
-    <!-- Pot Summary -->
+    <!-- Pot Summary — visible to all after Tod saves -->
     <div class="pot-summary" id="potSummary">
       <div class="pot-item"><div class="pot-label">Total Pot</div><div class="pot-val" id="summaryPot">$0</div></div>
-      <div class="pot-item"><div class="pot-label">Entries</div><div class="pot-val" id="summaryEntries">0</div></div>
+      <div class="pot-item"><div class="pot-label">Players</div><div class="pot-val" id="summaryEntries">0</div></div>
       <div class="pot-item"><div class="pot-label">Rebuys</div><div class="pot-val" id="summaryRebuys">0</div></div>
       <div class="pot-item"><div class="pot-label">Paid Places</div><div class="pot-val" id="summaryPaid">0</div></div>
     </div>
@@ -553,15 +545,11 @@ var luAutoInt = null;
     document.getElementById('badgeTod').style.display='';
     document.getElementById('noStructBtn').style.display='';
     document.getElementById('noStructText').textContent='Click below to configure blind levels before the game starts.';
-  } else {
-    // Non-Tod users: hide payout settings editor (read-only view only)
+    // Show Tod-only payout controls
     var ps = document.getElementById('payoutSettingsSection');
-    if(ps) ps.style.display='none';
-    // Disable all inputs/selects in payout tab
-    document.querySelectorAll('#tab-payouts input, #tab-payouts select').forEach(function(el){
-      el.disabled = true; el.style.opacity='0.5'; el.style.cursor='default';
-    });
+    if(ps) ps.style.display='';
   }
+  // Non-Tod: payoutSettingsSection stays hidden (default style="display:none")
 
   // Firebase
   if(window._firebaseReady){
@@ -580,9 +568,6 @@ var luAutoInt = null;
   // Commentary every 4 min during play
   commentaryInt = setInterval(maybeFireMidLevelCommentary, 4 * 60 * 1000);
   tickInt = setInterval(tick, 500);
-
-  // Sync players from RSVP if none set
-  setTimeout(function(){ if(!Object.keys(gamePlayers).length) syncRsvpCount(); }, 2000);
 
   // Load payout form defaults
   calcPayouts();
@@ -934,10 +919,9 @@ function endGame(winnerName){
   var allNames = Object.keys(gamePlayers);
   var totalPlayers = allNames.length || 1;
   var paidPlaces = Math.min(Number(payoutSettings.paidPlaces)||3, totalPlayers);
-  var buyIn    = Number(payoutSettings.buyIn)||100;
+  var buyIn    = _autoPayBuyIn();
   var rebuys   = Number(payoutSettings.rebuys)||0;
-  var rebuyAmt = Number(payoutSettings.rebuyAmt)||buyIn;
-  var totalPot = totalPlayers*buyIn + rebuys*rebuyAmt;
+  var totalPot = totalPlayers*buyIn + rebuys*buyIn;
   var splits   = SPLITS[Math.min(paidPlaces,5)] || SPLITS[3];
 
   // Build full results array
@@ -1063,10 +1047,9 @@ function showWinner(name, results, paidPlaces){
   var allNames = Object.keys(gamePlayers);
   var totalPlayers = allNames.length || 1;
   var pp = (paidPlaces != null) ? paidPlaces : Math.min(Number(payoutSettings.paidPlaces)||3, totalPlayers);
-  var buyIn    = Number(payoutSettings.buyIn)||100;
+  var buyIn    = _autoPayBuyIn();
   var rebuys   = Number(payoutSettings.rebuys)||0;
-  var rebuyAmt = Number(payoutSettings.rebuyAmt)||buyIn;
-  var totalPot = totalPlayers*buyIn + rebuys*rebuyAmt;
+  var totalPot = totalPlayers*buyIn + rebuys*buyIn;
   var splits   = SPLITS[Math.min(pp,5)] || SPLITS[3];
   var winCash  = Math.round(totalPot * splits[0] / 100);
   var winPts   = calcSeasonPoints(1, totalPlayers, pp);
@@ -1104,39 +1087,48 @@ function closeWinner(){
 // ═══════════════════════════════════════════════════════════
 //  PAYOUTS
 // ═══════════════════════════════════════════════════════════
+function _autoPayBuyIn(){
+  return (typeof LEAGUE!=='undefined'&&LEAGUE.nextGame&&LEAGUE.nextGame.buyin)
+    ? Number(LEAGUE.nextGame.buyin) : (Number(payoutSettings.buyIn)||100);
+}
+function _autoPayPlayers(){
+  var lp=Object.keys(gamePlayers).length;
+  return lp || Number(payoutSettings.players) || 10;
+}
+
 function applyPayoutSettingsToForm(){
   var p=payoutSettings;
-  if(p.buyIn!==undefined)    document.getElementById('pBuyIn').value    = p.buyIn;
-  if(p.players!==undefined)  document.getElementById('pPlayers').value  = p.players;
-  if(p.rebuys!==undefined)   document.getElementById('pRebuys').value   = p.rebuys;
-  if(p.rebuyAmt!==undefined) document.getElementById('pRebuyAmt').value = p.rebuyAmt;
-  if(p.paidPlaces!==undefined) document.getElementById('pPaidPlaces').value = p.paidPlaces;
-  if(p.split!==undefined)    document.getElementById('pSplit').value    = p.split;
+  var reEl=document.getElementById('pRebuys'), ppEl=document.getElementById('pPaidPlaces');
+  if(reEl&&p.rebuys!==undefined) reEl.value=p.rebuys;
+  if(ppEl&&p.paidPlaces!==undefined) ppEl.value=p.paidPlaces;
 }
 
 function savePayoutSettings(){
-  var s = {
-    buyIn:    Number(document.getElementById('pBuyIn').value)||100,
-    players:  Number(document.getElementById('pPlayers').value)||10,
-    rebuys:   Number(document.getElementById('pRebuys').value)||0,
-    rebuyAmt: Number(document.getElementById('pRebuyAmt').value)||100,
-    paidPlaces: Number(document.getElementById('pPaidPlaces').value)||3,
-    split: document.getElementById('pSplit').value
+  var buyIn=_autoPayBuyIn(), players=_autoPayPlayers();
+  var s={
+    buyIn:    buyIn,
+    players:  players,
+    rebuys:   Number((document.getElementById('pRebuys')||{value:0}).value)||0,
+    rebuyAmt: buyIn,
+    paidPlaces: Number((document.getElementById('pPaidPlaces')||{value:3}).value)||3,
+    split:    'auto'
   };
-  payoutSettings = s;
+  payoutSettings=s;
   if(payoutRef) try{payoutRef.set(s);}catch(e){}
   calcPayouts();
-  showToast('✅ Payout settings saved');
+  showToast('✅ Payouts published');
 }
 
 function calcPayouts(){
-  var buyIn    = Number(document.getElementById('pBuyIn').value)||100;
-  var players  = Number(document.getElementById('pPlayers').value)||10;
-  var rebuys   = Number(document.getElementById('pRebuys').value)||0;
-  var rebuyAmt = Number(document.getElementById('pRebuyAmt').value)||100;
-  var paidPlaces= Number(document.getElementById('pPaidPlaces').value)||3;
-  var totalPot = players*buyIn + rebuys*rebuyAmt;
-  var entries  = players + rebuys;
+  var buyIn    = _autoPayBuyIn();
+  var players  = _autoPayPlayers();
+  var rebuys   = Number((document.getElementById('pRebuys')||{value:0}).value)||payoutSettings.rebuys||0;
+  var paidPlaces= Number((document.getElementById('pPaidPlaces')||{value:3}).value)||payoutSettings.paidPlaces||3;
+  var totalPot = players*buyIn + rebuys*buyIn;
+
+  // Update Tod's info strip
+  var bi=document.getElementById('payInfoBuyIn'); if(bi) bi.textContent=fmtMoney(buyIn);
+  var pl=document.getElementById('payInfoPlayers'); if(pl) pl.textContent=players;
 
   document.getElementById('summaryPot').textContent     = fmtMoney(totalPot);
   document.getElementById('summaryEntries').textContent = players;
