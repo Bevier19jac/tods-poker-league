@@ -604,28 +604,39 @@ var fbKey='rsvp_'+ng.date.replace(/-/g,'_');
 var fbStatuses={};var fbLive=false;
 function loadLocal(){try{var s=localStorage.getItem('tpl_rsvp_'+fbKey);fbStatuses=s?JSON.parse(s):{};}catch(e){fbStatuses={};}}
 
-// ── AUTO-RESET RSVPs AT 8PM ON GAME NIGHT ──
+// ── AUTO-RESET RSVPs AT 9PM ON GAME NIGHT; CLEAR SEATS NEXT DAY ──
 (function(){
   var p=ng.date.split('-').map(Number);
-  var gameStart=new Date(p[0],p[1]-1,p[2],20,0,0);
+  var gameDate=new Date(p[0],p[1]-1,p[2]);
+  var rsvpReset=new Date(p[0],p[1]-1,p[2],21,0,0); // 9:00 PM
+  var seatsKey='seats_'+fbKey;
+
+  function isGameNight(now){
+    return now.getFullYear()===gameDate.getFullYear()&&now.getMonth()===gameDate.getMonth()&&now.getDate()===gameDate.getDate();
+  }
+  function isDayAfter(now){
+    var next=new Date(gameDate);next.setDate(next.getDate()+1);
+    return now>=next;
+  }
+
   function checkAutoReset(){
     var now=new Date();
-    var isGameNight=(now.getFullYear()===gameStart.getFullYear()&&now.getMonth()===gameStart.getMonth()&&now.getDate()===gameStart.getDate());
-    if(isGameNight&&now>=gameStart){
+    // 9 PM: clear RSVPs
+    if(isGameNight(now)&&now>=rsvpReset){
       if(fbLive&&window._firebaseReady){
-        try{
-          firebase.database().ref(fbKey).once('value',function(snap){
-            // Only auto-clear if there's actually data (prevents repeated clears)
-            if(snap.val()){
-              firebase.database().ref(fbKey).remove();
-            }
-          });
-        }catch(e){}
+        try{firebase.database().ref(fbKey).once('value',function(snap){if(snap.val())firebase.database().ref(fbKey).remove();});}catch(e){}
       }
       try{localStorage.removeItem('tpl_rsvp_'+fbKey);}catch(e){}
     }
+    // Next day: clear seat assignments
+    if(isDayAfter(now)&&fbLive&&window._firebaseReady){
+      try{firebase.database().ref(seatsKey).once('value',function(snap){if(snap.val())firebase.database().ref(seatsKey).remove();});}catch(e){}
+      renderSeats(null); // clear UI
+    }
   }
   setInterval(checkAutoReset,60000);
+  // On page load: if it's the day after, clear seats immediately
+  (function(){var now=new Date();if(isDayAfter(now))checkAutoReset();})();
 })();
 
 // ── INIT: load from localStorage immediately so grid shows on page load ──
@@ -813,6 +824,13 @@ function buildRsvpGrid(){
 })();
 
 // ── SEAT DRAW ──
+function shouldAutoScroll(){
+  var p=ng.date.split('-').map(Number);
+  var cutoff=new Date(p[0],p[1]-1,p[2],19,55,0); // 7:55 PM game night
+  var nextDay=new Date(p[0],p[1]-1,p[2]+1);
+  var now=new Date();
+  return now>=cutoff&&now<nextDay;
+}
 function renderSeats(seats){
   var grid=document.getElementById('seatGrid');if(!grid)return;
   if(!seats||!seats.length){
@@ -824,6 +842,11 @@ function renderSeats(seats){
     html+='<div class="seat-card"><div class="seat-num">'+(i+1)+'</div><div class="seat-name">'+name+'</div></div>';
   });
   grid.innerHTML=html;
+  // Auto-scroll to seat section on game night after 7:55 PM
+  if(shouldAutoScroll()){
+    var sec=document.getElementById('seatSection');
+    if(sec)setTimeout(function(){sec.scrollIntoView({behavior:'smooth',block:'start'});},400);
+  }
 }
 function drawSeats(){
   if(myName!=='Tod'){alert('Only Tod can randomize seats.');return;}
