@@ -533,6 +533,7 @@ var payoutSettings = { buyIn:100, players:10, rebuys:0, rebuyAmt:100, paidPlaces
 var db = null, stateRef = null, structRef = null, playersRef = null, payoutRef = null;
 var tickInt = null, commentaryInt = null;
 var luAutoInt = null;
+var gameEnded = false; // guard against double endGame calls
 
 // ═══════════════════════════════════════════════════════════
 //  INIT
@@ -916,6 +917,7 @@ function getFbKey(){
 }
 
 function endGame(winnerName){
+  gameEnded = true; // prevent checkWinner re-entry
   var allNames = Object.keys(gamePlayers);
   var totalPlayers = allNames.length || 1;
   var paidPlaces = Math.min(Number(payoutSettings.paidPlaces)||3, totalPlayers);
@@ -1033,8 +1035,15 @@ function syncRsvpCount(){
 function checkWinner(){
   var names = Object.keys(gamePlayers);
   var winner = names.find(function(n){ return gamePlayers[n].status==='winner'; });
-  // Only show overlay if a winner has been declared via "I Win" button
-  if(winner && !document.getElementById('winnerOverlay').classList.contains('show')){
+  if(!winner) return;
+  // If endGame hasn't run yet (e.g. winner declared from home screen), run it now
+  if(!gameEnded){
+    gameEnded = true;
+    endGame(winner);
+    return; // endGame calls showWinner internally
+  }
+  // endGame already ran — just show overlay if not already visible
+  if(!document.getElementById('winnerOverlay').classList.contains('show')){
     showWinner(winner, null, null);
   }
 }

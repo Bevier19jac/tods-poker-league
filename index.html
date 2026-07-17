@@ -935,24 +935,30 @@ function adjustTables(delta){
 function renderSeats(seats){
   var grid=document.getElementById('seatGrid');if(!grid)return;
   if(!seats||!seats.length){
+    grid.style.display='';
     grid.innerHTML='<div class="seat-empty">No seat draw yet.</div>';
     return;
   }
   currentSeats=seats;
   var ranges=getTableRanges(seats.length, currentTableCount);
+  var multiTable=ranges.length>1;
+  // When grouping by table, override the outer grid so table-groups stack full-width
+  grid.style.display=multiTable?'block':'';
   var html='';
   ranges.forEach(function(r){
     var c=TABLE_COLORS[(r.num-1)%TABLE_COLORS.length];
-    html+='<div class="table-group">';
-    html+='<div class="table-hdr" style="background:'+c.bg+';border:1px solid '+c.border+';color:'+c.text+'">TABLE '+r.num+' &nbsp;·&nbsp; Seats '+r.start+'–'+r.end+'</div>';
-    html+='<div class="seat-grid">';
+    if(multiTable){
+      html+='<div class="table-group">';
+      html+='<div class="table-hdr" style="background:'+c.bg+';border:1px solid '+c.border+';color:'+c.text+'">TABLE '+r.num+' &nbsp;·&nbsp; Seats '+r.start+'–'+r.end+'</div>';
+      html+='<div class="seat-grid">';
+    }
     for(var s=r.start;s<=r.end;s++){
       html+='<div class="seat-card" style="border-color:'+c.border+'">';
       html+='<div class="seat-num" style="color:'+c.text+'">'+s+'</div>';
       html+='<div class="seat-name">'+escH(seats[s-1])+'</div>';
       html+='</div>';
     }
-    html+='</div></div>';
+    if(multiTable) html+='</div></div>';
   });
   grid.innerHTML=html;
   if(shouldAutoScroll()){
