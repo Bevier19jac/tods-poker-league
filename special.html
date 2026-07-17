@@ -99,9 +99,11 @@
     .f-links a:hover{color:var(--gold);border-color:rgba(245,200,66,0.3)}
     .f-links a.special{color:#fbbf24;border-color:rgba(251,191,36,0.3)}
     .f-credit{font-size:0.63rem;color:var(--faint);letter-spacing:0.08em;margin-top:0.5rem}
+    /* FREEZE-OUT LABEL */
+    .freeze-label{text-align:center;font-size:1.3rem;font-weight:800;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;margin:1.8rem auto 0;text-shadow:0 0 20px rgba(245,200,66,0.4)}
     /* WAVING BILL */
-    .bill-wrap{position:relative;z-index:1;margin:2rem auto 0;text-align:center}
-    #billVideo{display:block;margin:0 auto;max-width:min(400px,80vw);height:auto;border-radius:6px;filter:drop-shadow(0 12px 40px rgba(0,0,0,0.7)) drop-shadow(0 0 24px rgba(26,100,26,0.3))}
+    .bill-wrap{position:relative;z-index:1;margin:1.2rem auto 0;text-align:center}
+    #billVideo{display:block;margin:0 auto;max-width:min(640px,92vw);height:auto;border-radius:4px;mix-blend-mode:screen;filter:drop-shadow(0 0 24px rgba(26,100,26,0.5))}
   </style>
 </head>
 <body>
@@ -180,6 +182,7 @@
       <div class="sdb-div"></div>
       <div class="sdb-item"><span class="sdb-val">Peachtree City</span><span class="sdb-lbl">Location</span></div>
     </div>
+    <div class="freeze-label">$100 Buy-In &bull; Deepstack Freeze-Out</div>
     <div class="bill-wrap">
       <video id="billVideo" autoplay muted loop playsinline>
         <source src="bill.mp4" type="video/mp4">
