@@ -211,6 +211,21 @@
     .seat-name{font-size:0.88rem;font-weight:600;color:var(--text)}
     .seat-empty{text-align:center;color:var(--faint);font-size:0.85rem;padding:1rem}
 
+    /* ── PLAYER BUST PANEL ── */
+    .ps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:0.6rem}
+    .ps-card{background:var(--card);border:1px solid rgba(245,200,66,0.1);border-radius:12px;padding:0.75rem;transition:all 0.2s}
+    .ps-card.me{border-color:rgba(245,200,66,0.5);box-shadow:0 0 0 1px rgba(245,200,66,0.15)}
+    .ps-card.ps-out{opacity:0.55;border-color:rgba(239,68,68,0.2)}
+    .ps-card.ps-winner{border-color:var(--gold);background:rgba(245,200,66,0.06)}
+    .ps-name{font-size:0.88rem;font-weight:700;color:var(--text);margin-bottom:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ps-status{font-size:0.72rem;font-weight:600;letter-spacing:0.04em}
+    .ps-status.in{color:#4ade80}.ps-status.out{color:#f87171}.ps-status.winner{color:var(--gold)}
+    .ps-place{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--dim);margin-top:0.1rem}
+    .ps-bust-btn{display:block;width:100%;margin-top:0.6rem;background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.5);color:#f87171;border-radius:6px;font-size:0.78rem;font-weight:700;padding:0.4rem;text-align:center;cursor:pointer;font-family:'Inter',sans-serif}
+    .ps-bust-btn:hover{background:rgba(239,68,68,0.35)}
+    .ps-bust-btn.win-btn{background:rgba(245,200,66,0.2);border-color:rgba(245,200,66,0.5);color:var(--gold);font-size:0.88rem;padding:0.5rem}
+    .ps-bust-btn.win-btn:hover{background:rgba(245,200,66,0.35)}
+
     /* ── CHAT ── */
     .chat-section{padding:2.5rem 1.5rem 3rem;border-top:1px solid rgba(245,200,66,0.06)}
     .chat-inner{max-width:700px;margin:0 auto}
@@ -419,13 +434,20 @@
 <section class="seat-section" id="seatSection">
   <div class="seat-inner">
     <div class="seat-head">
-      <div class="seat-title">🃏 <span>Seat</span> Draw</div>
+      <div class="seat-title" id="seatSectionTitle">🃏 <span>Seat</span> Draw</div>
       <button class="seat-draw-btn" id="seatDrawBtn" onclick="drawSeats()" style="display:none">🎲 Randomize Seats</button>
       <div id="seatLock" style="font-size:0.75rem;color:var(--dim);display:none">🔒 Only Tod can randomize seats</div>
     </div>
-    <div class="seat-hint" style="font-size:0.72rem;color:var(--dim);margin-bottom:0.8rem;">Seats are assigned from players marked <strong style="color:#4ade80">In</strong>. Click the button to randomize — everyone sees the same draw live. At <strong style="color:var(--gold)">7:55 PM</strong> on game night it auto-assigns. Tod can re-randomize anytime using the button above.</div>
-    <div class="seat-grid" id="seatGrid">
-      <div class="seat-empty" id="seatEmpty">No seat draw yet — click Randomize Seats to assign seats to all players marked In.</div>
+    <!-- Seat grid (shown pre-game) -->
+    <div id="seatPhase">
+      <div class="seat-grid" id="seatGrid">
+        <div class="seat-empty">No seat draw yet.</div>
+      </div>
+    </div>
+    <!-- Player bust panel (shown at Level 1 midpoint) -->
+    <div id="playerPhase" style="display:none">
+      <div style="font-size:0.72rem;color:var(--dim);margin-bottom:0.8rem">Tap your card to report your finish. Last 2 players see 🏆 I Win.</div>
+      <div class="ps-grid" id="homePlayerGrid"><div style="color:var(--faint);font-size:0.85rem;padding:0.5rem">Waiting for players...</div></div>
     </div>
   </div>
 </section>
@@ -671,6 +693,8 @@ function startFirebaseListeners(){
       var seats=snap.val();if(seats&&seats.length)renderSeats(seats);
     });
   }catch(e){console.warn('Firebase seats error:',e.message);}
+  // Game night live tracking
+  startGameNightListeners();
 }
 startFirebaseListeners();
 function setStatus(status){
@@ -844,7 +868,7 @@ function shouldAutoScroll(){
 function renderSeats(seats){
   var grid=document.getElementById('seatGrid');if(!grid)return;
   if(!seats||!seats.length){
-    grid.innerHTML='<div class="seat-empty" id="seatEmpty">No seat draw yet — click Randomize Seats to assign seats to all players marked In.</div>';
+    grid.innerHTML='<div class="seat-empty">No seat draw yet.</div>';
     return;
   }
   var html='';
@@ -852,13 +876,12 @@ function renderSeats(seats){
     html+='<div class="seat-card"><div class="seat-num">'+(i+1)+'</div><div class="seat-name">'+name+'</div></div>';
   });
   grid.innerHTML=html;
-  // Auto-scroll to seat section on game night after 7:55 PM
   if(shouldAutoScroll()){
     var sec=document.getElementById('seatSection');
     if(sec)setTimeout(function(){sec.scrollIntoView({behavior:'smooth',block:'start'});},400);
   }
 }
-function drawSeats(quiet){
+function drawSeats(){
   if(myName!=='Tod'){alert('Only Tod can randomize seats.');return;}
   var ins=Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';});
   if(!ins.length){alert('No players marked In yet!');return;}
@@ -868,24 +891,112 @@ function drawSeats(quiet){
   if(fbLive&&window._firebaseReady){
     try{firebase.database().ref('seats_'+fbKey).set(arr);}catch(e){console.warn('Seat save error:',e.message);}
   }
-  // Only announce on manual draw, not auto-draw
-  if(!quiet) announceSeatsDirect(arr);
-}
-function announceSeatsDirect(arr){
-  if(!window.speechSynthesis)return;
-  window.speechSynthesis.cancel();
-  var idx=0;
-  function next(){
-    if(idx>=arr.length)return;
-    var u=new SpeechSynthesisUtterance(arr[idx]+', seat '+(idx+1));
-    u.rate=1.05; u.pitch=1.0;
-    u.onend=function(){setTimeout(next,280);};
-    window.speechSynthesis.speak(u);
-    idx++;
-  }
-  next();
 }
 window.drawSeats=drawSeats;
+
+// ── HELPERS ──
+function ordH(n){var s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+function escH(s){return String(s).replace(/[&<>'"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\'':'&#39;','"':'&quot;'}[c];});}
+
+// ── GAME NIGHT: LIVE PLAYER TRACKING ON HOME SCREEN ──
+var homeGamePlayers={}, homeTimerState={}, homeBlindStructure=[], homeInGameMode=false;
+
+function startGameNightListeners(){
+  if(!window._firebaseReady)return;
+  try{
+    firebase.database().ref('gameNight/players').on('value',function(s){
+      homeGamePlayers=s.val()||{};
+      renderHomePlayerCards();
+    });
+    firebase.database().ref('gameNight/timerState').on('value',function(s){
+      homeTimerState=s.val()||{};
+      checkHomeTransition();
+    });
+    firebase.database().ref('gameNight/blindStructure').on('value',function(s){
+      homeBlindStructure=s.val()||[];
+      checkHomeTransition();
+    });
+  }catch(e){console.warn('Game night listeners:',e);}
+}
+
+function checkHomeTransition(){
+  if(homeInGameMode) return; // already switched, don't flip back
+  var lvl0=homeBlindStructure[0];
+  if(!lvl0||!homeTimerState.levelStartTime) return; // game not started
+  var paused=homeTimerState.totalPausedMs||0;
+  var elapsed=homeTimerState.running
+    ? Date.now()-homeTimerState.levelStartTime-paused
+    : (homeTimerState.pausedAt||homeTimerState.levelStartTime)-homeTimerState.levelStartTime-paused;
+  var halfLevel1Ms=lvl0.minutes*30000; // half of level 1 in ms
+  if(elapsed>=halfLevel1Ms||(homeTimerState.currentLevel||0)>0){
+    homeInGameMode=true;
+    document.getElementById('seatPhase').style.display='none';
+    document.getElementById('playerPhase').style.display='';
+    document.getElementById('seatDrawBtn').style.display='none';
+    var t=document.getElementById('seatSectionTitle');
+    if(t) t.innerHTML='🃏 <span>Live</span> Tracking';
+    renderHomePlayerCards();
+  }
+}
+
+function renderHomePlayerCards(){
+  if(!homeInGameMode)return;
+  var grid=document.getElementById('homePlayerGrid');if(!grid)return;
+  var names=Object.keys(homeGamePlayers);
+  if(!names.length){grid.innerHTML='<div style="color:var(--faint);font-size:0.85rem;padding:0.5rem">Waiting for players...</div>';return;}
+  var inCount=names.filter(function(n){return homeGamePlayers[n].status==='in';}).length;
+  names.sort(function(a,b){
+    var pa=homeGamePlayers[a],pb=homeGamePlayers[b];
+    var aIn=(pa.status==='in'||pa.status==='winner'),bIn=(pb.status==='in'||pb.status==='winner');
+    if(aIn&&!bIn)return -1;if(!aIn&&bIn)return 1;
+    if(!aIn&&!bIn)return (pb.place||0)-(pa.place||0);
+    return a.localeCompare(b);
+  });
+  var html='';
+  names.forEach(function(name){
+    var p=homeGamePlayers[name];
+    var isIn=p.status==='in', isWin=p.status==='winner', isMe=name===myName;
+    var cls='ps-card'+(isMe&&isIn?' me':'')+(isWin?' ps-winner':'')+(!isIn&&!isWin?' ps-out':'');
+    var stCls=isWin?'winner':isIn?'in':'out';
+    var stTxt=isWin?'🏆 WINNER':isIn?(isMe?'▶ You — In':'Still In'):'Eliminated';
+    html+='<div class="'+cls+'"><div class="ps-name">'+escH(name)+'</div>';
+    html+='<div class="ps-status '+stCls+'">'+stTxt+'</div>';
+    if(p.place) html+='<div class="ps-place">'+ordH(p.place)+' place</div>';
+    if(isIn&&isMe){
+      if(inCount<=2){
+        html+='<button class="ps-bust-btn win-btn" onclick="iWinHome()">🏆 I Win!</button>';
+      } else {
+        html+='<button class="ps-bust-btn" onclick="selfBustHome()">☠ I\'m Out</button>';
+      }
+    }
+    html+='</div>';
+  });
+  grid.innerHTML=html;
+}
+
+function selfBustHome(){
+  if(!myName||!homeGamePlayers[myName]||homeGamePlayers[myName].status!=='in')return;
+  var inCount=Object.keys(homeGamePlayers).filter(function(n){return homeGamePlayers[n].status==='in';}).length;
+  var place=inCount;
+  if(!confirm('Confirm you busted out in '+ordH(place)+' place?'))return;
+  var upd={};upd[myName]={status:'out',place:place};
+  if(window._firebaseReady) try{firebase.database().ref('gameNight/players').update(upd);}catch(e){}
+  homeGamePlayers[myName]=upd[myName];
+  renderHomePlayerCards();
+}
+
+function iWinHome(){
+  if(!myName||!homeGamePlayers[myName]||homeGamePlayers[myName].status!=='in')return;
+  var inPlayers=Object.keys(homeGamePlayers).filter(function(n){return homeGamePlayers[n].status==='in';});
+  var other=inPlayers.find(function(n){return n!==myName;});
+  if(!confirm('🏆 Confirm you won the tournament?'))return;
+  var upd={};
+  upd[myName]={status:'winner',place:1};
+  if(other) upd[other]={status:'out',place:2};
+  if(window._firebaseReady) try{firebase.database().ref('gameNight/players').update(upd);}catch(e){}
+  Object.assign(homeGamePlayers,upd);
+  renderHomePlayerCards();
+}
 
 // ── AUTO SEAT DRAW AT 7:55 PM ON GAME NIGHT ──
 (function(){
@@ -899,10 +1010,10 @@ window.drawSeats=drawSeats;
     if(n.getHours()===19&&n.getMinutes()>=55){
       if(fbLive&&window._firebaseReady){
         firebase.database().ref('seats_'+fbKey).once('value',function(snap){
-          if(!snap.val()){drawSeats(true);} // quiet — no announcement on auto-draw
+          if(!snap.val()){drawSeats();}
         });
       } else if(Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';}).length&&!document.getElementById('seatGrid').querySelector('.seat-card')){
-        drawSeats(true);
+        drawSeats();
       }
     }
   }
