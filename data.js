@@ -11,7 +11,7 @@ const LEAGUE = {
   location: "Peachtree City, GA",
 
   announcements: [
-    { active: true, type: "special", icon: "🏆", text: "Phil Tricky wins Event 12! Next up: Mid-Season Tournament — July 25th at 8 PM at Tod's. RSVP below!" },
+    { active: true, type: "special", icon: "🏆", text: "Phil Tricky wins Event 12! Next up: Mid-Season Tournament — July 25th at 5 PM at Tod's. $100 buy-in, no rebuys. Food at 7 PM. RSVP below!" },
   ],
 
   schedule: [
@@ -135,12 +135,13 @@ const LEAGUE = {
   nextGame: {
     date:      "2026-07-25",
     label:     "Mid-Season Tournament",
-    time:      "8:00 PM",
+    time:      "5:00 PM",
     location:  "Tod's",
-    buyin:     40,        // $40 = 6,000 chips; rebuy by break = +6,000 chips
-    earlyBonus: 500,      // 500 chip bonus for early arrival
+    buyin:     100,
+    earlyBonus: 500,
     startStack: 6000,
-    rebuyStack: 6000,
+    rebuyStack: 0,        // No rebuys
     maxPlayers: 20,
+    notes:     "Food at 7 PM. No rebuys.",
   },
 };
