@@ -781,7 +781,7 @@ function showLevelUp(){
       speak(startLine[0], startLine[1]);
     }, 4000);
 
-    // Auto advance
+    // Auto advance (Tod only)
     if(isAdmin){
       var count = 8;
       document.getElementById('luCountdown').textContent = count;
@@ -791,6 +791,8 @@ function showLevelUp(){
         if(el) el.textContent=count;
         if(count<=0){ clearInterval(luAutoInt); if(nextLvl) nextLevel(); else dismissLevelUp(); }
       }, 1000);
+    } else {
+      document.getElementById('luAuto').textContent = 'Waiting for next level…';
     }
   } else {
     document.getElementById('luBlinds').textContent = 'Final Level Complete!';

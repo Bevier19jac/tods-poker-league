@@ -710,7 +710,12 @@ function startFirebaseListeners(){
   // Seat draw — sync randomized seats to all clients
   try{
     firebase.database().ref('seats_'+fbKey).on('value',function(snap){
-      var seats=snap.val();if(seats&&seats.length)renderSeats(seats);
+      var seats=snap.val();
+      if(seats&&seats.length){
+        currentSeats=seats;
+        // Defer 60ms so tableCount listener can fire first, avoiding a 1-table flash
+        setTimeout(function(){ renderSeats(currentSeats); }, 60);
+      }
     });
   }catch(e){console.warn('Firebase seats error:',e.message);}
   // Table count — Tod sets it, everyone sees color-coded tables
