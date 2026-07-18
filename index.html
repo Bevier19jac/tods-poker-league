@@ -1012,6 +1012,11 @@ function startGameNightListeners(){
       checkHomeTransition();
     });
   }catch(e){console.warn('Game night listeners:',e);}
+  // Poll every 30s so the Level 1 midpoint transition fires even if nobody
+  // touches the timer between start and the first level change
+  setInterval(function(){
+    if(!homeInGameMode && homeTimerState.running) checkHomeTransition();
+  }, 30000);
 }
 
 function checkHomeTransition(){

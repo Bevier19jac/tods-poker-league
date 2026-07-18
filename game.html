@@ -302,6 +302,7 @@ body.tv .tv-footer{display:block}
       <button class="btn btn-outline" onclick="openEditModal()">⚙️ Blind Structure</button>
       <button class="btn btn-outline" onclick="openTVMode()">📺 TV Display</button>
       <button class="btn btn-outline" onclick="toggleCommentary()">🎤 <span id="commentaryLabel">Commentary ON</span></button>
+      <button class="btn btn-outline" onclick="syncRsvpCount()">↻ Sync Players</button>
       <button class="btn btn-danger btn-xs" onclick="resetTimer()">↺ Reset</button>
     </div>
   </div>
@@ -569,6 +570,9 @@ var gameEnded = false; // guard against double endGame calls
   // Commentary every 4 min during play
   commentaryInt = setInterval(maybeFireMidLevelCommentary, 4 * 60 * 1000);
   tickInt = setInterval(tick, 500);
+
+  // Auto-seed gamePlayers from seat draw / RSVPs if nobody is in yet
+  setTimeout(function(){ if(!Object.keys(gamePlayers).length) syncRsvpCount(); }, 2000);
 
   // Load payout form defaults
   calcPayouts();
