@@ -328,24 +328,30 @@ body.tv .tv-footer{display:block}
 <div class="tab-pane" id="tab-payouts">
   <div class="payout-wrap">
 
-    <!-- Tod-only: just the 2 things the app can't know itself -->
+    <!-- Tod-only settings: rebuys + editable recommended payouts -->
     <div id="payoutSettingsSection" class="payout-section" style="display:none">
       <div class="section-hd">Tournament Settings</div>
-      <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-bottom:1rem;font-size:0.82rem">
-        <span style="color:var(--dim)">Buy-In: <strong id="payInfoBuyIn" style="color:var(--gold)">$100</strong></span>
+      <div style="display:flex;gap:1.2rem;flex-wrap:wrap;margin-bottom:0.9rem;font-size:0.82rem">
+        <span style="color:var(--dim)">Buy-In: <strong id="payInfoBuyIn" style="color:var(--gold)">$—</strong></span>
         <span style="color:var(--dim)">Players: <strong id="payInfoPlayers" style="color:var(--gold)">—</strong></span>
+        <span style="color:var(--dim)">Pot: <strong id="payInfoPot" style="color:var(--gold)">$—</strong></span>
       </div>
-      <div class="payout-inputs" style="grid-template-columns:1fr 1fr">
-        <div class="fi"><label>Rebuys</label><input type="number" id="pRebuys" value="0" min="0" onchange="calcPayouts()"></div>
+      <div class="payout-inputs" style="margin-bottom:0.9rem">
+        <div class="fi"><label>Rebuys</label><input type="number" id="pRebuys" value="0" min="0" onchange="recalcPayoutRows(true)"></div>
         <div class="fi"><label>Places Paid</label>
-          <select id="pPaidPlaces" onchange="calcPayouts()">
-            <option value="1">1 place</option>
+          <select id="pPaidPlaces" onchange="payoutSettings._manualPlaces=true; recalcPayoutRows(true)">
             <option value="2">2 places</option>
-            <option value="3" selected>3 places</option>
+            <option value="3">3 places</option>
             <option value="4">4 places</option>
             <option value="5">5 places</option>
           </select>
         </div>
+      </div>
+      <!-- Editable payout amounts — auto-filled, Tod can tweak -->
+      <div id="payoutAmtRows" style="margin-bottom:0.5rem"></div>
+      <!-- Balance indicator -->
+      <div style="font-size:0.78rem;color:var(--dim);padding:0.35rem 0;margin-bottom:0.8rem;border-top:1px solid rgba(245,200,66,0.1)">
+        Pot: <span id="balPot">$—</span> &nbsp;·&nbsp; Paid: <span id="balPaid">$0</span> &nbsp;·&nbsp; <span id="balDiff" style="font-weight:600"></span>
       </div>
       <button class="btn btn-gold btn-sm" onclick="savePayoutSettings()">💾 Save &amp; Publish</button>
     </div>
@@ -510,13 +516,45 @@ function calcSeasonPoints(place, totalPlayers, paidPlaces){
 function getPoints(place, totalPlayers){ return calcSeasonPoints(place, totalPlayers, Math.min(Number((document.getElementById('pPaidPlaces')||{}).value)||3, totalPlayers)); }
 
 // Payout % splits by paid places
-var SPLITS = {
-  1:[100],
-  2:[65,35],
-  3:[55,28,17],
-  4:[47,26,16,11],
-  5:[41,24,15,11,9]
-};
+// Dynamic payout calculator
+// - Last paid place = 2× buy-in (rounded to nearest $20)
+// - All payouts rounded to nearest $20
+// - 1st place gets a heavy premium; amounts increase on the way up
+// Returns array [1st_$, 2nd_$, ..., Nth_$]
+function calcDynPayouts(pot, paidPlaces, buyIn) {
+  var STEP = 20;
+  var n = Math.max(1, paidPlaces || 1);
+  var minLast = Math.ceil(2 * buyIn / STEP) * STEP; // $80 for $40 buyin, $200 for $100
+
+  if (n === 1) return [pot];
+  if (pot <= minLast) return [pot]; // pot can't cover the floor
+
+  // Weight ratios for places 1 through N-1 (last place is always minLast)
+  // Keyed by number of places ABOVE the last paid spot
+  var W = {
+    1: [1],        // 2 paid: 1st gets everything above minLast
+    2: [4, 1],     // 3 paid: 1st:2nd in pool = 4:1
+    3: [8, 2, 1],  // 4 paid: 1st:2nd:3rd in pool = 8:2:1
+    4: [10,3,2,1], // 5 paid
+  };
+  var w = W[Math.min(n - 1, 4)] || W[2];
+  var wSum = w.reduce(function(a, b) { return a + b; }, 0);
+  var pool = pot - minLast;
+
+  var amounts = new Array(n);
+  amounts[n - 1] = minLast; // last place fixed
+
+  var sumFixed = minLast;
+  for (var i = 1; i < n - 1; i++) {
+    // i=1 → 2nd place, i=n-2 → second-to-last place
+    var raw = pool * w[i] / wSum;
+    amounts[i] = Math.max(Math.round(raw / STEP) * STEP, minLast);
+    sumFixed += amounts[i];
+  }
+
+  amounts[0] = pot - sumFixed; // 1st place gets the remainder (always largest)
+  return amounts;
+}
 
 // ═══════════════════════════════════════════════════════════
 //  STATE
@@ -529,7 +567,7 @@ var commentaryEnabled = true;
 var timerState = { running:false, currentLevel:0, levelStartTime:null, totalPausedMs:0, pausedAt:null };
 var blindStructure = [];
 var gamePlayers = {}; // { "Name": { status:"in"|"out"|"winner", place:N } }
-var payoutSettings = { buyIn:100, players:10, rebuys:0, rebuyAmt:100, paidPlaces:3, split:'auto' };
+var payoutSettings = { buyIn:100, players:10, rebuys:0, rebuyAmt:100, paidPlaces:null, amounts:null, split:'auto' };
 
 var db = null, stateRef = null, structRef = null, playersRef = null, payoutRef = null;
 var tickInt = null, commentaryInt = null;
@@ -855,6 +893,11 @@ function renderPlayers(){
         html += '<button class="bust-btn bust-self" onclick="selfBust()">☠ I\'m Out</button>';
       }
     }
+    // Admin override — Tod can mark other players out (e.g. phone died, left early)
+    if(isIn && isAdmin && !isMe){
+      var nameAttr = JSON.stringify(name).replace(/"/g,'&quot;');
+      html += '<button class="bust-btn" style="font-size:0.72rem;opacity:0.6;margin-top:0.2rem;background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.3);color:#f87171" onclick="adminBust('+nameAttr+')" title="Mark eliminated (admin)">⛔ Mark Out</button>';
+    }
     html += '</div>';
   });
   grid.innerHTML = html;
@@ -884,6 +927,15 @@ function selfBust(){
   var place = inCount; // still-in count == their finish position
   if(!confirm('Confirm you busted out in ' + ordinal(place) + ' place?')) return;
   bustPlayer(myName, place);
+}
+
+function adminBust(name){
+  if(!isAdmin || !gamePlayers[name] || gamePlayers[name].status !== 'in') return;
+  var inCount = Object.keys(gamePlayers).filter(function(n){ return gamePlayers[n].status==='in'; }).length;
+  if(inCount < 2){ showToast('Cannot remove the last remaining player'); return; }
+  var place = inCount;
+  if(!confirm('Mark '+name+' as eliminated in '+ordinal(place)+' place?\n(Use this if they left without tapping "I\'m Out")')) return;
+  bustPlayer(name, place);
 }
 
 function iWin(){
@@ -930,7 +982,8 @@ function endGame(winnerName){
   var buyIn    = _autoPayBuyIn();
   var rebuys   = Number(payoutSettings.rebuys)||0;
   var totalPot = totalPlayers*buyIn + rebuys*buyIn;
-  var splits   = SPLITS[Math.min(paidPlaces,5)] || SPLITS[3];
+  var dynAmts  = (payoutSettings.amounts&&payoutSettings.amounts.length)
+    ? payoutSettings.amounts : calcDynPayouts(totalPot, paidPlaces, buyIn);
 
   // Build full results array
   var results = allNames.map(function(n){
@@ -938,7 +991,7 @@ function endGame(winnerName){
     var place = p.place || (p.status==='winner' ? 1 : totalPlayers);
     var isITM = place <= paidPlaces;
     var pts  = calcSeasonPoints(place, totalPlayers, paidPlaces);
-    var cash = isITM ? Math.round(totalPot*(splits[place-1]||0)/100) : 0;
+    var cash = isITM ? (dynAmts[place-1] || 0) : 0;
     return { name:n, place:place, points:pts, winnings:cash, itm:isITM };
   });
   results.sort(function(a,b){ return a.place - b.place; });
@@ -1065,8 +1118,9 @@ function showWinner(name, results, paidPlaces){
   var buyIn    = _autoPayBuyIn();
   var rebuys   = Number(payoutSettings.rebuys)||0;
   var totalPot = totalPlayers*buyIn + rebuys*buyIn;
-  var splits   = SPLITS[Math.min(pp,5)] || SPLITS[3];
-  var winCash  = Math.round(totalPot * splits[0] / 100);
+  var _amts    = (payoutSettings.amounts&&payoutSettings.amounts.length)
+    ? payoutSettings.amounts : calcDynPayouts(totalPot,pp,buyIn);
+  var winCash  = (results&&results[0]) ? results[0].winnings : (_amts[0]||0);
   var winPts   = calcSeasonPoints(1, totalPlayers, pp);
   document.getElementById('winnerStats').innerHTML =
     '<div class="ws-item"><div class="ws-label">Prize</div><div class="ws-val">'+fmtMoney(winCash)+'</div></div>'+
@@ -1114,19 +1168,89 @@ function _autoPayPlayers(){
 function applyPayoutSettingsToForm(){
   var p=payoutSettings;
   var reEl=document.getElementById('pRebuys'), ppEl=document.getElementById('pPaidPlaces');
-  if(reEl&&p.rebuys!==undefined) reEl.value=p.rebuys;
-  if(ppEl&&p.paidPlaces!==undefined) ppEl.value=p.paidPlaces;
+  if(reEl&&p.rebuys!=null) reEl.value=p.rebuys;
+  if(ppEl&&p.paidPlaces){
+    ppEl.value=String(p.paidPlaces);
+    payoutSettings._manualPlaces=true; // treat Firebase-saved value as explicit
+  }
+  recalcPayoutRows(false); // show saved amounts if present, else recommendations
+}
+
+// Rebuild the editable payout-amount rows.
+// useRec=true → always refill from calcDynPayouts recommendations
+// useRec=false → use payoutSettings.amounts if saved, else recommendations
+function recalcPayoutRows(useRec){
+  var buyIn=_autoPayBuyIn(), players=_autoPayPlayers();
+  var rebuys=Number((document.getElementById('pRebuys')||{value:0}).value)||payoutSettings.rebuys||0;
+
+  // Auto-default places paid if Tod hasn't picked one
+  var ppEl=document.getElementById('pPaidPlaces');
+  if(ppEl&&!payoutSettings._manualPlaces){
+    var auto=players>=18?'5':players>=12?'4':'3';
+    ppEl.value=auto;
+  }
+  var paidPlaces=Number((ppEl||{value:5}).value)||5;
+
+  var pot=players*buyIn+rebuys*buyIn;
+  var piPot=document.getElementById('payInfoPot'); if(piPot) piPot.textContent=fmtMoney(pot);
+
+  // Determine amounts to pre-fill
+  var rec=calcDynPayouts(pot,paidPlaces,buyIn);
+  var saved=(!useRec&&payoutSettings.amounts&&payoutSettings.amounts.length===paidPlaces)
+    ? payoutSettings.amounts : null;
+  var vals=saved||rec;
+
+  // Build rows
+  var medals=['🥇','🥈','🥉','','',''];
+  var container=document.getElementById('payoutAmtRows'); if(!container) return;
+  var html='<div style="display:flex;flex-direction:column;gap:0.45rem">';
+  for(var i=0;i<paidPlaces;i++){
+    var medal=medals[i]||'';
+    var lbl=ordinal(i+1)+' place';
+    html+='<div style="display:flex;align-items:center;gap:0.5rem">';
+    html+='<span style="width:1.6rem;text-align:center;font-size:1rem">'+medal+'</span>';
+    html+='<span style="min-width:5.5rem;color:var(--dim);font-size:0.82rem">'+lbl+'</span>';
+    html+='<span style="color:var(--dim);font-size:0.9rem">$</span>';
+    html+='<input type="number" step="20" min="0" value="'+(vals[i]||0)+'" ';
+    html+='style="width:90px;padding:0.28rem 0.5rem;font-size:0.95rem;background:var(--surface);';
+    html+='border:1px solid rgba(245,200,66,0.22);border-radius:6px;color:var(--fg);text-align:right" ';
+    html+='oninput="updatePayoutBalance()">';
+    if(!saved) html+='<span style="font-size:0.72rem;color:var(--dim);margin-left:0.2rem">rec</span>';
+    html+='</div>';
+  }
+  html+='</div>';
+  container.innerHTML=html;
+  updatePayoutBalance();
+}
+
+function updatePayoutBalance(){
+  var buyIn=_autoPayBuyIn(), players=_autoPayPlayers();
+  var rebuys=Number((document.getElementById('pRebuys')||{value:0}).value)||payoutSettings.rebuys||0;
+  var pot=players*buyIn+rebuys*buyIn;
+  var inputs=document.querySelectorAll('#payoutAmtRows input');
+  var paid=0; inputs.forEach(function(inp){ paid+=Number(inp.value)||0; });
+  var diff=pot-paid;
+  var diffEl=document.getElementById('balDiff');
+  if(diffEl){
+    if(diff===0){ diffEl.textContent='✓ Balanced'; diffEl.style.color='#4ade80'; }
+    else if(diff>0){ diffEl.textContent=fmtMoney(diff)+' unallocated'; diffEl.style.color='#fbbf24'; }
+    else{ diffEl.textContent=fmtMoney(Math.abs(diff))+' over pot'; diffEl.style.color='#f87171'; }
+  }
+  var bp=document.getElementById('balPot'); if(bp) bp.textContent=fmtMoney(pot);
+  var bpd=document.getElementById('balPaid'); if(bpd) bpd.textContent=fmtMoney(paid);
 }
 
 function savePayoutSettings(){
   var buyIn=_autoPayBuyIn(), players=_autoPayPlayers();
+  var rebuys=Number((document.getElementById('pRebuys')||{value:0}).value)||0;
+  var paidPlaces=Number((document.getElementById('pPaidPlaces')||{value:5}).value)||5;
+  // Read actual amounts from the editable inputs
+  var amounts=[];
+  document.querySelectorAll('#payoutAmtRows input').forEach(function(inp){ amounts.push(Number(inp.value)||0); });
+  if(!amounts.length) amounts=calcDynPayouts(players*buyIn+rebuys*buyIn,paidPlaces,buyIn);
   var s={
-    buyIn:    buyIn,
-    players:  players,
-    rebuys:   Number((document.getElementById('pRebuys')||{value:0}).value)||0,
-    rebuyAmt: buyIn,
-    paidPlaces: Number((document.getElementById('pPaidPlaces')||{value:3}).value)||3,
-    split:    'auto'
+    buyIn:buyIn, players:players, rebuys:rebuys, rebuyAmt:buyIn,
+    paidPlaces:paidPlaces, amounts:amounts, split:'custom'
   };
   payoutSettings=s;
   if(payoutRef) try{payoutRef.set(s);}catch(e){}
@@ -1138,19 +1262,28 @@ function calcPayouts(){
   var buyIn    = _autoPayBuyIn();
   var players  = _autoPayPlayers();
   var rebuys   = Number((document.getElementById('pRebuys')||{value:0}).value)||payoutSettings.rebuys||0;
-  var paidPlaces= Number((document.getElementById('pPaidPlaces')||{value:3}).value)||payoutSettings.paidPlaces||3;
+  var paidPlaces= Number((document.getElementById('pPaidPlaces')||{value:5}).value)||payoutSettings.paidPlaces||(players>=18?5:3);
   var totalPot = players*buyIn + rebuys*buyIn;
 
   // Update Tod's info strip
   var bi=document.getElementById('payInfoBuyIn'); if(bi) bi.textContent=fmtMoney(buyIn);
   var pl=document.getElementById('payInfoPlayers'); if(pl) pl.textContent=players;
+  var potDisp=document.getElementById('payInfoPot'); if(potDisp) potDisp.textContent=fmtMoney(totalPot);
 
   document.getElementById('summaryPot').textContent     = fmtMoney(totalPot);
   document.getElementById('summaryEntries').textContent = players;
   document.getElementById('summaryRebuys').textContent  = rebuys;
   document.getElementById('summaryPaid').textContent    = paidPlaces;
 
-  var splits = SPLITS[Math.min(paidPlaces,5)] || SPLITS[3];
+  // Use Tod's saved amounts if published, else auto-calculate
+  var dynAmts=(payoutSettings.amounts&&payoutSettings.amounts.length)
+    ? payoutSettings.amounts : calcDynPayouts(totalPot,paidPlaces,buyIn);
+
+  // Build rows for admin if not yet populated
+  if(isAdmin){
+    var rc=document.getElementById('payoutAmtRows');
+    if(rc&&!rc.querySelector('input')) recalcPayoutRows(false);
+  }
 
   // Build sorted result list: knocked-out by place desc, then "in" players at top
   var allNames = Object.keys(gamePlayers).sort(function(a,b){
@@ -1166,7 +1299,7 @@ function calcPayouts(){
     var isITM = place<=paidPlaces;
     var pName = allNames.find(function(n){ return gamePlayers[n].place===place; }) || '—';
     var pts   = getPoints(place, players);
-    var cash  = isITM ? Math.round(totalPot*(splits[place-1]||0)/100) : 0;
+    var cash  = isITM ? (dynAmts[place-1] || 0) : 0;
     var isWinner = place===1;
     html += '<tr class="'+(isWinner?'winner-row':isITM?'itm':'')+'">';
     html += '<td class="place-cell">'+ordinal(place)+'</td>';
