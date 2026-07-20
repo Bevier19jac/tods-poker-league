@@ -346,12 +346,13 @@ body.tv .tv-footer{display:block}
             <option value="5">5 places</option>
           </select>
         </div>
+        <div class="fi"><label>Kitty %</label><input type="number" id="pKittyPct" value="0" min="0" max="50" step="1" onchange="recalcPayoutRows(true)" placeholder="0"></div>
       </div>
       <!-- Editable payout amounts — auto-filled, Tod can tweak -->
       <div id="payoutAmtRows" style="margin-bottom:0.5rem"></div>
       <!-- Balance indicator -->
       <div style="font-size:0.78rem;color:var(--dim);padding:0.35rem 0;margin-bottom:0.8rem;border-top:1px solid rgba(245,200,66,0.1)">
-        Pot: <span id="balPot">$—</span> &nbsp;·&nbsp; Paid: <span id="balPaid">$0</span> &nbsp;·&nbsp; <span id="balDiff" style="font-weight:600"></span>
+        Pot: <span id="balPot">$—</span> &nbsp;·&nbsp; <span id="balKittyLine" style="display:none">Kitty: <span id="balKitty" style="color:#fbbf24"></span> &nbsp;·&nbsp; Pool: <span id="balPool"></span> &nbsp;·&nbsp; </span>Paid: <span id="balPaid">$0</span> &nbsp;·&nbsp; <span id="balDiff" style="font-weight:600"></span>
       </div>
       <button class="btn btn-gold btn-sm" onclick="savePayoutSettings()">💾 Save &amp; Publish</button>
 
@@ -377,6 +378,7 @@ body.tv .tv-footer{display:block}
     <!-- Pot Summary — visible to all after Tod saves -->
     <div class="pot-summary" id="potSummary">
       <div class="pot-item"><div class="pot-label">Total Pot</div><div class="pot-val" id="summaryPot">$0</div></div>
+      <div class="pot-item" id="summaryKittyItem" style="display:none"><div class="pot-label">Tonight's Kitty</div><div class="pot-val" id="summaryKitty" style="color:#fbbf24">$0</div></div>
       <div class="pot-item"><div class="pot-label">Players</div><div class="pot-val" id="summaryEntries">0</div></div>
       <div class="pot-item"><div class="pot-label">Rebuys</div><div class="pot-val" id="summaryRebuys">0</div></div>
       <div class="pot-item"><div class="pot-label">Paid Places</div><div class="pot-val" id="summaryPaid">0</div></div>
@@ -1198,6 +1200,13 @@ function _autoPayBuyIn(){
   return (typeof LEAGUE!=='undefined'&&LEAGUE.nextGame&&LEAGUE.nextGame.buyin)
     ? Number(LEAGUE.nextGame.buyin) : (Number(payoutSettings.buyIn)||100);
 }
+function _kittyPct(){
+  return Number((document.getElementById('pKittyPct')||{value:0}).value)||Number(payoutSettings.kittyPct)||0;
+}
+function _payoutPool(pot){
+  var kp=_kittyPct();
+  return kp>0 ? Math.round(pot*(1-kp/100)) : pot;
+}
 function _autoPayPlayers(){
   var lp=Object.keys(gamePlayers).length;
   return lp || Number(payoutSettings.players) || 10;
@@ -1205,12 +1214,13 @@ function _autoPayPlayers(){
 
 function applyPayoutSettingsToForm(){
   var p=payoutSettings;
-  var reEl=document.getElementById('pRebuys'), ppEl=document.getElementById('pPaidPlaces');
+  var reEl=document.getElementById('pRebuys'), ppEl=document.getElementById('pPaidPlaces'), kpEl=document.getElementById('pKittyPct');
   if(reEl&&p.rebuys!=null) reEl.value=p.rebuys;
   if(ppEl&&p.paidPlaces){
     ppEl.value=String(p.paidPlaces);
     payoutSettings._manualPlaces=true; // treat Firebase-saved value as explicit
   }
+  if(kpEl&&p.kittyPct!=null) kpEl.value=p.kittyPct;
   recalcPayoutRows(false); // show saved amounts if present, else recommendations
 }
 
@@ -1230,10 +1240,11 @@ function recalcPayoutRows(useRec){
   var paidPlaces=Number((ppEl||{value:5}).value)||5;
 
   var pot=players*buyIn+rebuys*buyIn;
+  var pool=_payoutPool(pot);
   var piPot=document.getElementById('payInfoPot'); if(piPot) piPot.textContent=fmtMoney(pot);
 
-  // Determine amounts to pre-fill
-  var rec=calcDynPayouts(pot,paidPlaces,buyIn);
+  // Determine amounts to pre-fill — recommendations based on payout pool
+  var rec=calcDynPayouts(pool,paidPlaces,buyIn);
   var saved=(!useRec&&payoutSettings.amounts&&payoutSettings.amounts.length===paidPlaces)
     ? payoutSettings.amounts : null;
   var vals=saved||rec;
@@ -1265,17 +1276,25 @@ function updatePayoutBalance(){
   var buyIn=_autoPayBuyIn(), players=_autoPayPlayers();
   var rebuys=Number((document.getElementById('pRebuys')||{value:0}).value)||payoutSettings.rebuys||0;
   var pot=players*buyIn+rebuys*buyIn;
+  var pool=_payoutPool(pot);
+  var kp=_kittyPct();
+  var kittyAmt=pot-pool;
   var inputs=document.querySelectorAll('#payoutAmtRows input');
   var paid=0; inputs.forEach(function(inp){ paid+=Number(inp.value)||0; });
-  var diff=pot-paid;
+  var diff=pool-paid;
   var diffEl=document.getElementById('balDiff');
   if(diffEl){
     if(diff===0){ diffEl.textContent='✓ Balanced'; diffEl.style.color='#4ade80'; }
     else if(diff>0){ diffEl.textContent=fmtMoney(diff)+' unallocated'; diffEl.style.color='#fbbf24'; }
-    else{ diffEl.textContent=fmtMoney(Math.abs(diff))+' over pot'; diffEl.style.color='#f87171'; }
+    else{ diffEl.textContent=fmtMoney(Math.abs(diff))+' over pool'; diffEl.style.color='#f87171'; }
   }
   var bp=document.getElementById('balPot'); if(bp) bp.textContent=fmtMoney(pot);
   var bpd=document.getElementById('balPaid'); if(bpd) bpd.textContent=fmtMoney(paid);
+  // Kitty line — only show when kitty % is set
+  var kl=document.getElementById('balKittyLine');
+  if(kl){ kl.style.display=kp>0?'':'none'; }
+  var bk=document.getElementById('balKitty'); if(bk) bk.textContent=fmtMoney(kittyAmt)+' ('+kp+'%)';
+  var bpool=document.getElementById('balPool'); if(bpool) bpool.textContent=fmtMoney(pool);
 }
 
 function savePayoutSettings(){
@@ -1285,10 +1304,13 @@ function savePayoutSettings(){
   // Read actual amounts from the editable inputs
   var amounts=[];
   document.querySelectorAll('#payoutAmtRows input').forEach(function(inp){ amounts.push(Number(inp.value)||0); });
-  if(!amounts.length) amounts=calcDynPayouts(players*buyIn+rebuys*buyIn,paidPlaces,buyIn);
+  var kittyPct=_kittyPct();
+  var pot=players*buyIn+rebuys*buyIn;
+  var pool=_payoutPool(pot);
+  if(!amounts.length) amounts=calcDynPayouts(pool,paidPlaces,buyIn);
   var s={
     buyIn:buyIn, players:players, rebuys:rebuys, rebuyAmt:buyIn,
-    paidPlaces:paidPlaces, amounts:amounts, split:'custom'
+    paidPlaces:paidPlaces, amounts:amounts, split:'custom', kittyPct:kittyPct
   };
   payoutSettings=s;
   if(payoutRef) try{payoutRef.set(s);}catch(e){}
@@ -1357,6 +1379,16 @@ function calcPayouts(){
   document.getElementById('summaryEntries').textContent = players;
   document.getElementById('summaryRebuys').textContent  = rebuys;
   document.getElementById('summaryPaid').textContent    = paidPlaces;
+  // Kitty tile — only visible when kitty % is set
+  var kpct = Number(payoutSettings.kittyPct)||0;
+  var kittyTile = document.getElementById('summaryKittyItem');
+  var kittyVal  = document.getElementById('summaryKitty');
+  if(kittyTile && kpct > 0){
+    kittyTile.style.display='';
+    if(kittyVal) kittyVal.textContent = fmtMoney(Math.round(totalPot * kpct / 100)) + ' ('+kpct+'%)';
+  } else if(kittyTile){
+    kittyTile.style.display='none';
+  }
 
   // Use Tod's saved amounts if published, else auto-calculate
   var dynAmts=(payoutSettings.amounts&&payoutSettings.amounts.length)
