@@ -149,6 +149,9 @@ html+='</tbody></table></div>';
 if(lg.highHand&&lg.highHand.player){
   html+='<div style="padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:0.8rem"><span style="font-size:1.2rem">🃏</span><div><div style="font-size:0.75rem;color:var(--gold);font-weight:600">High Hand</div><div style="font-size:0.85rem">'+lg.highHand.player+' — '+lg.highHand.hand+'</div><div style="font-size:0.75rem;color:var(--dim)">'+lg.highHand.description+'</div></div></div>';
 }
+if(lg.tonersGame&&lg.tonersGame.player){
+  html+='<div style="padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:0.8rem"><span style="font-size:1.2rem">🎯</span><div><div style="font-size:0.75rem;color:var(--gold);font-weight:600">Toner\'s Game</div><div style="font-size:0.85rem">'+lg.tonersGame.player+'</div>'+(lg.tonersGame.note?'<div style="font-size:0.75rem;color:var(--dim)">'+lg.tonersGame.note+'</div>':'')+'</div></div>';
+}
 html+='</div>';
 div.innerHTML=html;
 </script>
