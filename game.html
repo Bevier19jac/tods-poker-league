@@ -354,6 +354,24 @@ body.tv .tv-footer{display:block}
         Pot: <span id="balPot">$—</span> &nbsp;·&nbsp; Paid: <span id="balPaid">$0</span> &nbsp;·&nbsp; <span id="balDiff" style="font-weight:600"></span>
       </div>
       <button class="btn btn-gold btn-sm" onclick="savePayoutSettings()">💾 Save &amp; Publish</button>
+
+      <!-- Special Awards (Tod-only inputs) -->
+      <div style="margin-top:1.2rem;border-top:1px solid rgba(245,200,66,0.12);padding-top:1rem">
+        <div class="section-hd" style="margin-bottom:0.7rem">Special Awards</div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.8rem">
+          <div style="font-size:0.78rem;color:var(--dim)">🃏 High Hand of the Tournament</div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+            <input type="text" id="hhPlayer" placeholder="Player name" style="flex:1;min-width:110px;padding:0.3rem 0.6rem;background:var(--card);border:1px solid rgba(245,200,66,0.22);border-radius:6px;color:var(--text);font-size:0.88rem">
+            <input type="text" id="hhHand" placeholder="Hand (e.g. Quad Aces)" style="flex:2;min-width:150px;padding:0.3rem 0.6rem;background:var(--card);border:1px solid rgba(245,200,66,0.22);border-radius:6px;color:var(--text);font-size:0.88rem">
+          </div>
+          <div style="font-size:0.78rem;color:var(--dim);margin-top:0.3rem">🎯 Toner's Game</div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+            <input type="text" id="tgPlayer" placeholder="Player name" style="flex:1;min-width:110px;padding:0.3rem 0.6rem;background:var(--card);border:1px solid rgba(245,200,66,0.22);border-radius:6px;color:var(--text);font-size:0.88rem">
+            <input type="text" id="tgNote" placeholder="Note (optional)" style="flex:2;min-width:150px;padding:0.3rem 0.6rem;background:var(--card);border:1px solid rgba(245,200,66,0.22);border-radius:6px;color:var(--text);font-size:0.88rem">
+          </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="saveSpecialAwards()">💾 Save Awards</button>
+      </div>
     </div>
 
     <!-- Pot Summary — visible to all after Tod saves -->
@@ -373,6 +391,12 @@ body.tv .tv-footer{display:block}
         </thead>
         <tbody id="payoutTbody"></tbody>
       </table>
+    </div>
+
+    <!-- Special Awards — visible to all once Tod fills them in -->
+    <div class="payout-section" id="specialAwardsDisplay" style="display:none">
+      <div class="section-hd">Special Awards</div>
+      <div id="specialAwardsContent"></div>
     </div>
 
   </div>
@@ -579,7 +603,8 @@ var blindStructure = [];
 var gamePlayers = {}; // { "Name": { status:"in"|"out"|"winner", place:N } }
 var payoutSettings = { buyIn:100, players:10, rebuys:0, rebuyAmt:100, paidPlaces:null, amounts:null, split:'auto' };
 
-var db = null, stateRef = null, structRef = null, playersRef = null, payoutRef = null;
+var db = null, stateRef = null, structRef = null, playersRef = null, payoutRef = null, specialAwardsRef = null;
+var specialAwards = { highHand: {player:'', hand:''}, tonersGame: {player:'', note:''} };
 var tickInt = null, commentaryInt = null;
 var luAutoInt = null;
 var gameEnded = false; // guard against double endGame calls
@@ -604,15 +629,17 @@ var gameEnded = false; // guard against double endGame calls
   // Firebase
   if(window._firebaseReady){
     db = firebase.database();
-    stateRef   = db.ref('gameNight/timerState');
-    structRef  = db.ref('gameNight/blindStructure');
-    playersRef = db.ref('gameNight/players');
-    payoutRef  = db.ref('gameNight/payoutSettings');
+    stateRef          = db.ref('gameNight/timerState');
+    structRef         = db.ref('gameNight/blindStructure');
+    playersRef        = db.ref('gameNight/players');
+    payoutRef         = db.ref('gameNight/payoutSettings');
+    specialAwardsRef  = db.ref('gameNight/specialAwards');
 
-    stateRef.on('value',  function(s){ var v=s.val(); if(v){ timerState=v; } renderTimer(); updateTimerControls(); updateLiveBadge(); });
-    structRef.on('value', function(s){ var v=s.val(); blindStructure=(v&&v.length)?v:[]; renderTimer(); calcPayouts(); });
-    playersRef.on('value',function(s){ var v=s.val(); gamePlayers=v||{}; renderPlayers(); calcPayouts(); checkWinner(); });
-    payoutRef.on('value', function(s){ var v=s.val(); if(v){ payoutSettings=v; applyPayoutSettingsToForm(); calcPayouts(); } });
+    stateRef.on('value',         function(s){ var v=s.val(); if(v){ timerState=v; } renderTimer(); updateTimerControls(); updateLiveBadge(); });
+    structRef.on('value',        function(s){ var v=s.val(); blindStructure=(v&&v.length)?v:[]; renderTimer(); calcPayouts(); });
+    playersRef.on('value',       function(s){ var v=s.val(); gamePlayers=v||{}; renderPlayers(); calcPayouts(); checkWinner(); });
+    payoutRef.on('value',        function(s){ var v=s.val(); if(v){ payoutSettings=v; applyPayoutSettingsToForm(); calcPayouts(); } });
+    specialAwardsRef.on('value', function(s){ var v=s.val(); if(v) specialAwards=v; renderSpecialAwards(); });
   }
 
   // Commentary every 4 min during play
@@ -1016,7 +1043,8 @@ function endGame(winnerName){
       db.ref('completedEvents/'+dateKey).set({
         date: dateKey, label: evtLabel,
         playerCount: totalPlayers, winner: winnerName,
-        results: results, timestamp: Date.now()
+        results: results, timestamp: Date.now(),
+        specialAwards: specialAwards
       });
       // Snapshot last-game stats per player into Firebase standings
       var standUpd = {};
@@ -1266,6 +1294,51 @@ function savePayoutSettings(){
   if(payoutRef) try{payoutRef.set(s);}catch(e){}
   calcPayouts();
   showToast('✅ Payouts published');
+}
+
+function saveSpecialAwards(){
+  if(!isAdmin||!db) return;
+  var hh={ player:((document.getElementById('hhPlayer')||{}).value||'').trim(), hand:((document.getElementById('hhHand')||{}).value||'').trim() };
+  var tg={ player:((document.getElementById('tgPlayer')||{}).value||'').trim(), note:((document.getElementById('tgNote')||{}).value||'').trim() };
+  specialAwards = { highHand:hh, tonersGame:tg };
+  if(specialAwardsRef) try{ specialAwardsRef.set(specialAwards); }catch(e){}
+  renderSpecialAwards();
+  showToast('✅ Awards saved');
+}
+
+function renderSpecialAwards(){
+  var el=document.getElementById('specialAwardsDisplay');
+  var ct=document.getElementById('specialAwardsContent');
+  if(!el||!ct) return;
+  var hh=(specialAwards.highHand)||{};
+  var tg=(specialAwards.tonersGame)||{};
+  if(!hh.player&&!tg.player){ el.style.display='none'; return; }
+  el.style.display='';
+  var html='';
+  if(hh.player){
+    html+='<div style="display:flex;align-items:center;gap:0.7rem;padding:0.65rem 0;border-bottom:1px solid var(--border)">';
+    html+='<span style="font-size:1.4rem">🃏</span><div>';
+    html+='<div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.1rem">High Hand</div>';
+    html+='<div style="font-weight:700;color:var(--gold);font-size:1rem">'+hh.player+'</div>';
+    if(hh.hand) html+='<div style="font-size:0.82rem;color:var(--dim);margin-top:0.1rem">'+hh.hand+'</div>';
+    html+='</div></div>';
+  }
+  if(tg.player){
+    html+='<div style="display:flex;align-items:center;gap:0.7rem;padding:0.65rem 0">';
+    html+='<span style="font-size:1.4rem">🎯</span><div>';
+    html+='<div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.1rem">Toner\'s Game</div>';
+    html+='<div style="font-weight:700;color:var(--gold);font-size:1rem">'+tg.player+'</div>';
+    if(tg.note) html+='<div style="font-size:0.82rem;color:var(--dim);margin-top:0.1rem">'+tg.note+'</div>';
+    html+='</div></div>';
+  }
+  ct.innerHTML=html;
+  // Pre-fill admin inputs if in admin mode
+  if(isAdmin){
+    var hhP=document.getElementById('hhPlayer'); if(hhP&&hh.player&&!hhP.value) hhP.value=hh.player;
+    var hhH=document.getElementById('hhHand');   if(hhH&&hh.hand&&!hhH.value)   hhH.value=hh.hand;
+    var tgP=document.getElementById('tgPlayer'); if(tgP&&tg.player&&!tgP.value) tgP.value=tg.player;
+    var tgN=document.getElementById('tgNote');   if(tgN&&tg.note&&!tgN.value)   tgN.value=tg.note;
+  }
 }
 
 function calcPayouts(){

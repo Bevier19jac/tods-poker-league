@@ -139,9 +139,9 @@ const LEAGUE = {
     location:  "Tod's",
     buyin:     100,
     earlyBonus: 500,
-    startStack: 6000,
+    startStack: 25000,
     rebuyStack: 0,        // No rebuys
-    maxPlayers: 20,
+    maxPlayers: 33,
     notes:     "Food at 7 PM. No rebuys.",
   },
 };
