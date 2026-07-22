@@ -631,6 +631,12 @@ function calcDynPayouts(pot, paidPlaces, buyIn) {
   var sumFixed = 0;
   for (var k = 1; k < n; k++) sumFixed += amounts[k];
   amounts[0] = pot - sumFixed;
+
+  // Safety: if pot was too small and 1st place < 2nd place, reduce paid places by 1 and retry
+  if(amounts[0] < amounts[1]){
+    return calcDynPayouts(pot, paidPlaces - 1, buyIn);
+  }
+
   return amounts;
 }
 
