@@ -654,6 +654,7 @@ var specialAwards = { highHand: {player:'', hand:''}, tonersGame: {player:'', no
 var tickInt = null, commentaryInt = null;
 var luAutoInt = null;
 var gameEnded = false; // guard against double endGame calls
+var levelUpShownForLevel = -1; // prevents level-up overlay from looping on same level
 
 // ═══════════════════════════════════════════════════════════
 //  INIT
@@ -834,9 +835,11 @@ function tick(){
   var cd = document.getElementById('dispCountdown');
   var st = document.getElementById('dispStatus');
 
-  // Auto advance when 0
+  // Show level-up overlay once per level — never loop on same level
   if(timerState.running && remaining<=0){
-    if(!document.getElementById('levelupOverlay').classList.contains('show')){
+    var curLvl = timerState.currentLevel||0;
+    if(levelUpShownForLevel !== curLvl){
+      levelUpShownForLevel = curLvl;
       showLevelUp();
     }
     return;
@@ -990,9 +993,7 @@ function showLevelUp(){
         if(count<=0){ clearInterval(luAutoInt); if(nextLvl) nextLevel(); else dismissLevelUp(); }
       }, 1000);
     } else {
-      document.getElementById('luAuto').textContent = 'Waiting for next level…';
-      // Auto-dismiss so the overlay doesn't block non-admin players' screens
-      setTimeout(function(){ dismissLevelUp(); }, 5000);
+      document.getElementById('luAuto').textContent = 'Tap to dismiss  ·  Waiting for next level…';
     }
   } else {
     document.getElementById('luBlinds').textContent = 'Final Level Complete!';
