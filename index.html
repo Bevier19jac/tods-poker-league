@@ -523,9 +523,12 @@ function playerChip(p,i,size){
   var inner=Math.round(size*0.62);
   var es=Math.round(inner*0.55);
   var suits=['♠','♥','♦','♣'];
-  var face=p.avatar
-    ?'<img src="'+p.avatar+'" style="width:'+inner+'px;height:'+inner+'px;object-fit:cover;border-radius:50%;border:1.5px solid rgba(255,255,255,0.35)" alt="'+p.name+'">'
-    :'<span style="font-size:'+es+'px;text-shadow:0 1px 3px rgba(0,0,0,0.7);line-height:1">'+suits[i%4]+'</span>';
+  // Priority: uploaded photo > data.js avatar > suit symbol
+  var photoSrc = playerPhotos[p.name] || null;
+  var imgSrc   = photoSrc || p.avatar || null;
+  var face = imgSrc
+    ? '<img src="'+imgSrc+'" style="width:'+inner+'px;height:'+inner+'px;object-fit:cover;border-radius:50%;border:1.5px solid rgba(255,255,255,0.35)" alt="'+p.name+'">'
+    : '<span style="font-size:'+es+'px;text-shadow:0 1px 3px rgba(0,0,0,0.7);line-height:1">'+suits[i%4]+'</span>';
   var chipDiv='<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,'+c.bg+' 54%,transparent 54%),repeating-conic-gradient('+c.rim+' 0deg 20deg,rgba(255,255,255,0.65) 20deg 40deg);box-shadow:0 0 0 1.5px '+c.rim+',0 3px 10px rgba(0,0,0,0.55)">'+face+'</div>';
   var vid=PLAYER_VIDEOS[p.name]||EMPTY_CHAIR;
   return '<div class="chip-vid-wrap" data-vid="'+vid+'" data-name="'+p.name+'" style="display:inline-flex">'+chipDiv+'</div>';
@@ -654,6 +657,7 @@ function updateSeatBtn(){
 // ── FIREBASE / RSVP ──
 var fbKey='rsvp_'+ng.date.replace(/-/g,'_');
 var fbStatuses={};var fbLive=false;
+var playerPhotos={}; // { name: base64DataUrl } — synced from Firebase playerPhotos/{name}
 function loadLocal(){try{var s=localStorage.getItem('tpl_rsvp_'+fbKey);fbStatuses=s?JSON.parse(s):{};}catch(e){fbStatuses={};}}
 
 // ── AUTO-RESET RSVPs AT 9PM ON GAME NIGHT; CLEAR SEATS NEXT DAY ──
@@ -730,6 +734,13 @@ function startFirebaseListeners(){
       }
     });
   }catch(e){console.warn('Firebase tableCount error:',e.message);}
+  // Player photos — uploaded by players, shown on chips for everyone
+  try{
+    firebase.database().ref('playerPhotos').on('value', function(snap){
+      playerPhotos = snap.val() || {};
+      buildRsvpGrid();
+    }, function(err){ console.warn('Photos Firebase error:',err.message); });
+  }catch(e){ console.warn('Photos init error:',e.message); }
   // Game night live tracking
   startGameNightListeners();
 }
@@ -822,6 +833,22 @@ function buildRsvpGrid(){
     html+='<div class="rsvp-card'+sClass+mClass+'">'+playerChip(p,i,68)+'<div class="rc-name">'+p.name+'</div>'+badge+btns+'</div>';
   });
   grid.innerHTML=html;
+
+  // Attach camera upload click to own chip
+  if(myName){
+    var ownWrap = grid.querySelector('.chip-vid-wrap[data-name="'+myName+'"]');
+    if(ownWrap){
+      ownWrap.style.cursor='pointer';
+      ownWrap.style.position='relative';
+      ownWrap.title = playerPhotos[myName] ? 'Click to update your photo' : 'Click to add your photo 📷';
+      ownWrap.onclick = function(e){ e.stopPropagation(); openPhotoUpload(); };
+      // Camera badge on chip
+      var cam = document.createElement('div');
+      cam.style.cssText='position:absolute;bottom:-2px;right:-2px;font-size:11px;background:rgba(14,14,26,0.92);border:1px solid rgba(245,200,66,0.4);border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;pointer-events:none;line-height:1';
+      cam.textContent='📷';
+      ownWrap.appendChild(cam);
+    }
+  }
 }
 
 // ── ANNOUNCEMENTS ──
@@ -1126,6 +1153,45 @@ function iWinHome(){
   checkAutoSeat();
 })();
 
+// ── PHOTO UPLOAD ──
+function openPhotoUpload(){
+  if(!myName){ alert('Pick your name first!'); return; }
+  var inp = document.getElementById('photoFileInput');
+  if(inp) inp.click();
+}
+
+function handlePhotoUpload(inp){
+  var file = inp && inp.files && inp.files[0];
+  if(!file || !myName){ return; }
+  inp.value = ''; // reset so same file can be re-selected
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      // Center-crop and resize to 80×80
+      var canvas = document.createElement('canvas');
+      canvas.width = 80; canvas.height = 80;
+      var ctx = canvas.getContext('2d');
+      var sz = Math.min(img.width, img.height);
+      var ox = (img.width  - sz) / 2;
+      var oy = (img.height - sz) / 2;
+      ctx.drawImage(img, ox, oy, sz, sz, 0, 0, 80, 80);
+      var dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+      // Save to Firebase and update local cache
+      if(window._firebaseReady){
+        try{
+          firebase.database().ref('playerPhotos/'+myName).set(dataUrl);
+        }catch(err){ console.warn('Photo save error:',err.message); }
+      }
+      playerPhotos[myName] = dataUrl;
+      buildRsvpGrid();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
 </script>
+<!-- Hidden file input for chip photo upload -->
+<input type="file" id="photoFileInput" accept="image/*" onchange="handlePhotoUpload(this)" style="display:none">
 </body>
 </html>

@@ -221,6 +221,12 @@ body.tv .tv-footer{display:block}
 .toast{position:fixed;bottom:4.5rem;left:50%;transform:translateX(-50%) translateY(8px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0.5rem 1.2rem;font-size:0.8rem;color:var(--text);opacity:0;pointer-events:none;transition:opacity 0.3s,transform 0.3s;z-index:900;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ── PIN MODAL ── */
+.pin-key{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text);border-radius:10px;padding:0.75rem;font-size:1.1rem;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif}
+.pin-key:hover{background:rgba(245,200,66,0.12);border-color:rgba(245,200,66,0.3);color:var(--gold)}
+.pin-key:active{transform:scale(0.92)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+
 /* LEVEL UP overlay */
 .levelup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:800;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;cursor:pointer}
 .levelup-overlay.show{display:flex}
@@ -413,6 +419,42 @@ body.tv .tv-footer{display:block}
      OVERLAYS
 ════════════════════════════ -->
 
+<!-- Admin PIN Modal -->
+<div id="pinModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);backdrop-filter:blur(10px);align-items:center;justify-content:center">
+  <div style="background:#13131f;border:1px solid rgba(245,200,66,0.25);border-radius:20px;padding:2rem 1.8rem 1.6rem;max-width:300px;width:90%;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,0.6)">
+    <div style="font-size:2.2rem;margin-bottom:0.4rem">🔐</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:800;color:var(--gold);margin-bottom:0.35rem">Admin PIN</div>
+    <div style="font-size:0.75rem;color:var(--dim);margin-bottom:1.4rem;min-height:2em" id="pinModalSub">Enter your 4-digit PIN</div>
+    <!-- PIN dots -->
+    <div id="pinDots" style="display:flex;gap:0.9rem;justify-content:center;margin-bottom:1.4rem">
+      <div id="pd0" style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(245,200,66,0.4);background:transparent;transition:background 0.1s"></div>
+      <div id="pd1" style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(245,200,66,0.4);background:transparent;transition:background 0.1s"></div>
+      <div id="pd2" style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(245,200,66,0.4);background:transparent;transition:background 0.1s"></div>
+      <div id="pd3" style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(245,200,66,0.4);background:transparent;transition:background 0.1s"></div>
+    </div>
+    <!-- Numpad -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.45rem;margin-bottom:0.9rem">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key" style="font-size:0.72rem" onclick="pinClear()">Clear</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key" style="font-size:0.82rem" onclick="pinDelete()">⌫</button>
+    </div>
+    <div style="display:flex;gap:0.5rem">
+      <button onclick="submitPin()" style="flex:1;background:rgba(245,200,66,0.15);border:1px solid rgba(245,200,66,0.35);color:var(--gold);border-radius:10px;padding:0.65rem;font-weight:700;font-size:0.88rem;cursor:pointer;font-family:'Inter',sans-serif">Unlock</button>
+      <button onclick="dismissPinModal()" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:var(--dim);border-radius:10px;padding:0.65rem;font-size:0.88rem;cursor:pointer;font-family:'Inter',sans-serif">Skip</button>
+    </div>
+    <div id="pinError" style="margin-top:0.65rem;font-size:0.72rem;color:var(--red);min-height:1em"></div>
+  </div>
+</div>
+
 <!-- Level Up -->
 <div class="levelup-overlay" id="levelupOverlay" onclick="dismissLevelUp()">
   <div class="levelup-icon">⏰</div>
@@ -596,8 +638,10 @@ function calcDynPayouts(pot, paidPlaces, buyIn) {
 //  STATE
 // ═══════════════════════════════════════════════════════════
 var myName = (function(){ try{return localStorage.getItem('tpl_myname')||'';}catch(e){return '';} })();
-var isAdmin = (myName === 'Tod');
+var isAdmin = false; // granted only after PIN verification
 var isTV    = (new URLSearchParams(location.search).get('tv') === '1');
+var adminPinStored = null; // null = no PIN set yet (first-time setup mode)
+var pinEntry = '';
 var commentaryEnabled = true;
 
 var timerState = { running:false, currentLevel:0, levelStartTime:null, totalPausedMs:0, pausedAt:null };
@@ -617,16 +661,6 @@ var gameEnded = false; // guard against double endGame calls
 (function init(){
   // UI mode setup
   if(isTV){ document.body.classList.add('tv'); document.getElementById('badgeTV').style.display=''; }
-  if(isAdmin){
-    document.getElementById('adminBar').classList.add('visible');
-    document.getElementById('badgeTod').style.display='';
-    document.getElementById('noStructBtn').style.display='';
-    document.getElementById('noStructText').textContent='Click below to configure blind levels before the game starts.';
-    // Show Tod-only payout controls
-    var ps = document.getElementById('payoutSettingsSection');
-    if(ps) ps.style.display='';
-  }
-  // Non-Tod: payoutSettingsSection stays hidden (default style="display:none")
 
   // Firebase
   if(window._firebaseReady){
@@ -644,6 +678,9 @@ var gameEnded = false; // guard against double endGame calls
     specialAwardsRef.on('value', function(s){ var v=s.val(); if(v) specialAwards=v; renderSpecialAwards(); });
   }
 
+  // If Tod, show PIN modal (Firebase db now set up so we can read stored PIN)
+  if(myName === 'Tod'){ showPinModal(); }
+
   // Commentary every 4 min during play
   commentaryInt = setInterval(maybeFireMidLevelCommentary, 4 * 60 * 1000);
   tickInt = setInterval(tick, 500);
@@ -654,6 +691,90 @@ var gameEnded = false; // guard against double endGame calls
   // Load payout form defaults
   calcPayouts();
 })();
+
+// ═══════════════════════════════════════════════════════════
+//  ADMIN PIN
+// ═══════════════════════════════════════════════════════════
+function activateAdmin(){
+  isAdmin = true;
+  document.getElementById('adminBar').classList.add('visible');
+  document.getElementById('badgeTod').style.display='';
+  document.getElementById('noStructBtn').style.display='';
+  document.getElementById('noStructText').textContent='Click below to configure blind levels before the game starts.';
+  var ps = document.getElementById('payoutSettingsSection');
+  if(ps) ps.style.display='';
+  applyPayoutSettingsToForm();
+  calcPayouts();
+}
+
+function showPinModal(){
+  pinEntry = '';
+  updatePinDots();
+  document.getElementById('pinError').textContent = '';
+  document.getElementById('pinModalSub').textContent = 'Enter your 4-digit PIN';
+  document.getElementById('pinModal').style.display = 'flex';
+  if(db){
+    try{
+      db.ref('adminSettings/pin').once('value', function(s){
+        adminPinStored = s.val();
+        if(!adminPinStored){
+          document.getElementById('pinModalSub').textContent = 'First time? Enter any 4 digits to create your PIN';
+        }
+      });
+    }catch(e){}
+  }
+}
+
+function dismissPinModal(){
+  document.getElementById('pinModal').style.display = 'none';
+  // isAdmin stays false — Tod plays as a regular player this session
+}
+
+function pinKey(d){
+  if(pinEntry.length >= 4) return;
+  pinEntry += d;
+  updatePinDots();
+  if(pinEntry.length === 4) submitPin();
+}
+
+function pinDelete(){
+  if(pinEntry.length > 0){ pinEntry = pinEntry.slice(0,-1); updatePinDots(); }
+}
+
+function pinClear(){
+  pinEntry = '';
+  updatePinDots();
+  document.getElementById('pinError').textContent = '';
+}
+
+function updatePinDots(){
+  for(var i=0;i<4;i++){
+    var d=document.getElementById('pd'+i);
+    if(d) d.style.background = i < pinEntry.length ? 'var(--gold)' : 'transparent';
+  }
+}
+
+function submitPin(){
+  if(pinEntry.length !== 4){ document.getElementById('pinError').textContent='Enter all 4 digits'; return; }
+  if(!adminPinStored){
+    // First-time setup: save this as the new PIN
+    if(db){ try{ db.ref('adminSettings/pin').set(pinEntry); }catch(e){} }
+    dismissPinModal();
+    activateAdmin();
+    showToast('✅ Admin PIN created — welcome, Tod!');
+  } else if(pinEntry === adminPinStored){
+    dismissPinModal();
+    activateAdmin();
+    showToast('🔓 Admin access granted');
+  } else {
+    document.getElementById('pinError').textContent = 'Incorrect PIN — try again';
+    pinEntry = '';
+    updatePinDots();
+    var dots = document.getElementById('pinDots');
+    dots.style.animation = 'shake 0.4s ease';
+    setTimeout(function(){ dots.style.animation = ''; }, 450);
+  }
+}
 
 // ═══════════════════════════════════════════════════════════
 //  TABS
