@@ -708,21 +708,32 @@ function activateAdmin(){
   calcPayouts();
 }
 
+var _pinReady = false; // true once Firebase has responded with stored PIN (or confirmed none exists)
 function showPinModal(){
   pinEntry = '';
+  _pinReady = false;
   updatePinDots();
   document.getElementById('pinError').textContent = '';
-  document.getElementById('pinModalSub').textContent = 'Enter your 4-digit PIN';
+  document.getElementById('pinModalSub').textContent = 'Loading…';
   document.getElementById('pinModal').style.display = 'flex';
   if(db){
     try{
       db.ref('adminSettings/pin').once('value', function(s){
         adminPinStored = s.val();
+        _pinReady = true;
         if(!adminPinStored){
           document.getElementById('pinModalSub').textContent = 'First time? Enter any 4 digits to create your PIN';
+        } else {
+          document.getElementById('pinModalSub').textContent = 'Enter your 4-digit PIN';
         }
+      }, function(){ // on error: allow entry anyway (offline fallback)
+        _pinReady = true;
+        document.getElementById('pinModalSub').textContent = 'Enter your 4-digit PIN';
       });
-    }catch(e){}
+    }catch(e){ _pinReady = true; document.getElementById('pinModalSub').textContent = 'Enter your 4-digit PIN'; }
+  } else {
+    _pinReady = true;
+    document.getElementById('pinModalSub').textContent = 'Enter your 4-digit PIN';
   }
 }
 
@@ -735,7 +746,10 @@ function pinKey(d){
   if(pinEntry.length >= 4) return;
   pinEntry += d;
   updatePinDots();
-  if(pinEntry.length === 4) submitPin();
+  if(pinEntry.length === 4){
+    if(_pinReady){ submitPin(); }
+    // else: wait for user to tap Unlock once Firebase responds
+  }
 }
 
 function pinDelete(){
@@ -756,6 +770,7 @@ function updatePinDots(){
 }
 
 function submitPin(){
+  if(!_pinReady){ document.getElementById('pinError').textContent='Still loading — try again in a moment'; return; }
   if(pinEntry.length !== 4){ document.getElementById('pinError').textContent='Enter all 4 digits'; return; }
   if(!adminPinStored){
     // First-time setup: save this as the new PIN
@@ -940,12 +955,14 @@ function prevLevel(){
   if(!isAdmin) return;
   var prev=(timerState.currentLevel||0)-1;
   if(prev<0){ showToast('Already at Level 1'); return; }
+  levelUpShownForLevel = -1; // navigating backwards — allow overlay to fire for this level again
   dismissLevelUp();
   pushState({ running:timerState.running||false, currentLevel:prev, levelStartTime:timerState.running?Date.now():null, totalPausedMs:0, pausedAt:null });
 }
 function resetTimer(){
   if(!isAdmin) return;
   if(!confirm('Reset timer to Level 1?')) return;
+  levelUpShownForLevel = -1; // allow level-up overlay to fire again after reset
   dismissLevelUp();
   pushState({ running:false, currentLevel:0, levelStartTime:null, totalPausedMs:0, pausedAt:null });
   showToast('↺ Reset to Level 1');
