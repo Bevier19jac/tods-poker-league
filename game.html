@@ -991,6 +991,8 @@ function showLevelUp(){
       }, 1000);
     } else {
       document.getElementById('luAuto').textContent = 'Waiting for next level…';
+      // Auto-dismiss so the overlay doesn't block non-admin players' screens
+      setTimeout(function(){ dismissLevelUp(); }, 5000);
     }
   } else {
     document.getElementById('luBlinds').textContent = 'Final Level Complete!';

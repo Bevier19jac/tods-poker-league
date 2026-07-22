@@ -1052,9 +1052,20 @@ function startGameNightListeners(){
 }
 
 function checkHomeTransition(){
-  if(homeInGameMode) return; // already switched, don't flip back
+  // If the timer was reset (levelStartTime cleared), revert to seat draw view
+  if(!homeTimerState.levelStartTime){
+    if(homeInGameMode){
+      homeInGameMode=false;
+      document.getElementById('seatPhase').style.display='';
+      document.getElementById('playerPhase').style.display='none';
+      var t=document.getElementById('seatSectionTitle');
+      if(t) t.innerHTML='🃏 <span>Seat</span> Draw';
+    }
+    return;
+  }
+  if(homeInGameMode) return; // already in game mode, don't re-trigger
   var lvl0=homeBlindStructure[0];
-  if(!lvl0||!homeTimerState.levelStartTime) return; // game not started
+  if(!lvl0) return; // no blind structure yet
   var paused=homeTimerState.totalPausedMs||0;
   var elapsed=homeTimerState.running
     ? Date.now()-homeTimerState.levelStartTime-paused
