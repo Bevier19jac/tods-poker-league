@@ -741,8 +741,8 @@ function startFirebaseListeners(){
       buildRsvpGrid();
     }, function(err){ console.warn('Photos Firebase error:',err.message); });
   }catch(e){ console.warn('Photos init error:',e.message); }
-  // Game night live tracking
-  startGameNightListeners();
+  // NOTE: Game night live player tracking lives in game.html only.
+  // startGameNightListeners() intentionally removed from home page.
 }
 startFirebaseListeners();
 function setStatus(status){
