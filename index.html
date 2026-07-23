@@ -250,6 +250,9 @@
     .chat-empty{color:var(--faint);font-size:0.82rem;text-align:center;padding:2rem 0}
     @media(max-width:500px){.chat-name-input{width:100%}.chat-form{gap:0.4rem}}
 
+    /* SEAT PIN shake animation */
+    @keyframes seatShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+
     /* FOOTER */
     footer{background:var(--dark2);border-top:1px solid rgba(245,200,66,0.08);padding:2rem;text-align:center}
     .f-links{display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:0.9rem}
@@ -449,6 +452,10 @@
         <button class="seat-draw-btn" id="seatDrawBtn" onclick="drawSeats()" style="display:none">🎲 Randomize Seats</button>
       </div>
       <div id="seatLock" style="font-size:0.75rem;color:var(--dim);display:none">🔒 Only Tod can randomize seats</div>
+    </div>
+    <!-- Info note for players -->
+    <div style="font-size:0.78rem;color:var(--dim);margin-bottom:1rem;padding:0.65rem 0.95rem;background:rgba(245,200,66,0.05);border:1px solid rgba(245,200,66,0.12);border-radius:8px;line-height:1.55">
+      🎲 <strong style="color:var(--text)">Official Seat Draw</strong> — Tod will run the randomizer just prior to the tournament start. Your assigned seat will appear here.
     </div>
     <!-- Seat grid (shown pre-game) -->
     <div id="seatPhase">
@@ -999,11 +1006,21 @@ function renderSeats(seats){
   }
 }
 
+// ── SEAT DRAW PIN ──
+var seatDrawUnlocked = false; // unlocked for this session after correct PIN
+var _seatPinEntry = '';
+var _seatPinStored = null;
+var _seatPinReady = false;
+
 function drawSeats(){
   if(myName!=='Tod'){alert('Only Tod can randomize seats.');return;}
   var ins=Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';});
   if(!ins.length){alert('No players marked In yet!');return;}
-  // Auto-set table count on first draw based on player count
+  // Require PIN unless already verified this session
+  if(!seatDrawUnlocked){ showSeatPinModal(); return; }
+  _doDrawSeats(ins);
+}
+function _doDrawSeats(ins){
   var el=document.getElementById('tableCountDisplay');
   if(currentTableCount===1 && ins.length>1){
     currentTableCount=autoTableCount(ins.length);
@@ -1020,6 +1037,69 @@ function drawSeats(){
   }
 }
 window.drawSeats=drawSeats;
+
+function showSeatPinModal(){
+  _seatPinEntry=''; _seatPinReady=false;
+  updateSeatPinDots();
+  document.getElementById('seatPinError').textContent='';
+  document.getElementById('seatPinSub').textContent='Enter your admin PIN to randomize seats';
+  document.getElementById('seatPinModal').style.display='flex';
+  if(window._firebaseReady){
+    try{
+      firebase.database().ref('adminSettings/pin').once('value',function(s){
+        _seatPinStored=s.val()||null;
+        _seatPinReady=true;
+        if(!_seatPinStored) document.getElementById('seatPinSub').textContent='No PIN set yet — set one in Game Night first';
+      },function(){ _seatPinReady=true; });
+    }catch(e){ _seatPinReady=true; }
+  } else { _seatPinReady=true; }
+}
+function dismissSeatPinModal(){
+  document.getElementById('seatPinModal').style.display='none';
+}
+function seatPinKey(d){
+  if(_seatPinEntry.length>=4)return;
+  _seatPinEntry+=d; updateSeatPinDots();
+  if(_seatPinEntry.length===4 && _seatPinReady) submitSeatPin();
+}
+function seatPinDelete(){
+  if(_seatPinEntry.length>0){_seatPinEntry=_seatPinEntry.slice(0,-1);updateSeatPinDots();}
+}
+function seatPinClear(){
+  _seatPinEntry=''; updateSeatPinDots();
+  document.getElementById('seatPinError').textContent='';
+}
+function updateSeatPinDots(){
+  for(var i=0;i<4;i++){
+    var d=document.getElementById('spd'+i);
+    if(d) d.style.background=i<_seatPinEntry.length?'#f5c842':'transparent';
+  }
+}
+function submitSeatPin(){
+  if(!_seatPinReady){document.getElementById('seatPinError').textContent='Still loading — try again';return;}
+  if(_seatPinEntry.length!==4){document.getElementById('seatPinError').textContent='Enter all 4 digits';return;}
+  if(!_seatPinStored){
+    // No PIN exists yet — tell them to set one in Game Night first
+    document.getElementById('seatPinError').textContent='No PIN set. Open Game Night first to create one.';
+    return;
+  }
+  if(_seatPinEntry===_seatPinStored){
+    seatDrawUnlocked=true;
+    dismissSeatPinModal();
+    // Now do the actual draw
+    var ins=Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';});
+    if(ins.length) _doDrawSeats(ins);
+  } else {
+    document.getElementById('seatPinError').textContent='Incorrect PIN — try again';
+    _seatPinEntry=''; updateSeatPinDots();
+    var dots=document.getElementById('seatPinDots');
+    if(dots){
+      dots.style.animation='none'; void dots.offsetWidth;
+      dots.style.animation='seatShake 0.4s ease';
+      setTimeout(function(){if(dots)dots.style.animation='';},450);
+    }
+  }
+}
 
 // ── HELPERS ──
 function ordH(n){var s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
@@ -1204,5 +1284,41 @@ function handlePhotoUpload(inp){
 </script>
 <!-- Hidden file input for chip photo upload -->
 <input type="file" id="photoFileInput" accept="image/*" onchange="handlePhotoUpload(this)" style="display:none">
+
+<!-- ── SEAT DRAW PIN MODAL ── -->
+<div id="seatPinModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);backdrop-filter:blur(10px);align-items:center;justify-content:center">
+  <div style="background:#13131f;border:1px solid rgba(245,200,66,0.25);border-radius:20px;padding:2rem 1.8rem 1.6rem;max-width:300px;width:90%;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,0.6)">
+    <div style="font-size:2.2rem;margin-bottom:0.4rem">🔐</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:800;color:#f5c842;margin-bottom:0.35rem">Confirm Identity</div>
+    <div style="font-size:0.75rem;color:#8888aa;margin-bottom:1.4rem;min-height:2em" id="seatPinSub">Enter your admin PIN to randomize seats</div>
+    <!-- PIN dots -->
+    <div id="seatPinDots" style="display:flex;gap:0.9rem;justify-content:center;margin-bottom:1.4rem">
+      <div id="spd0" style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(245,200,66,0.4);background:transparent;transition:background 0.1s"></div>
+      <div id="spd1" style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(245,200,66,0.4);background:transparent;transition:background 0.1s"></div>
+      <div id="spd2" style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(245,200,66,0.4);background:transparent;transition:background 0.1s"></div>
+      <div id="spd3" style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(245,200,66,0.4);background:transparent;transition:background 0.1s"></div>
+    </div>
+    <!-- Numpad -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.45rem;margin-bottom:0.9rem">
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinKey('1')">1</button>
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinKey('2')">2</button>
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinKey('3')">3</button>
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinKey('4')">4</button>
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinKey('5')">5</button>
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinKey('6')">6</button>
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinKey('7')">7</button>
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinKey('8')">8</button>
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinKey('9')">9</button>
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:0.72rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinClear()">Clear</button>
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:1.1rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinKey('0')">0</button>
+      <button style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f0f0f8;border-radius:10px;padding:0.75rem;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif" onclick="seatPinDelete()">⌫</button>
+    </div>
+    <div style="display:flex;gap:0.5rem">
+      <button onclick="submitSeatPin()" style="flex:1;background:rgba(245,200,66,0.15);border:1px solid rgba(245,200,66,0.35);color:#f5c842;border-radius:10px;padding:0.65rem;font-weight:700;font-size:0.88rem;cursor:pointer;font-family:'Inter',sans-serif">Confirm</button>
+      <button onclick="dismissSeatPinModal()" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8888aa;border-radius:10px;padding:0.65rem;font-size:0.88rem;cursor:pointer;font-family:'Inter',sans-serif">Cancel</button>
+    </div>
+    <div id="seatPinError" style="margin-top:0.65rem;font-size:0.72rem;color:#ef4444;min-height:1em"></div>
+  </div>
+</div>
 </body>
 </html>
