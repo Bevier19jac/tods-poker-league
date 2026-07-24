@@ -350,6 +350,7 @@ body.tv .tv-footer{display:block}
             <option value="3">3 places</option>
             <option value="4">4 places</option>
             <option value="5">5 places</option>
+            <option value="6">6 places</option>
           </select>
         </div>
         <div class="fi"><label>Kitty %</label><input type="number" id="pKittyPct" value="0" min="0" max="50" step="1" onchange="recalcPayoutRows(true)" placeholder="0"></div>
@@ -564,75 +565,73 @@ var COMMENTARY = {
   ]
 };
 
-// Season points formula (reverse-engineered from historical data):
-//   Non-ITM:  300 × (totalPlayers - place + 1)
-//   ITM:      firstNonITM + 400 × (paidPlaces - place + 1)
-//   Winner:   2nd-place points + 700
+// Season points formula — matches Tod's official Mid-Season Championship table exactly.
+// Base:  400 × (totalPlayers − place + 1)  for every seat.
+// ITM bonus on top of base:
+//   1st place      → +400
+//   2nd–(n-2) paid → +200  (all paid seats except the bottom two)
+//   2nd-from-last  → +100
+//   Last paid      → +0
+// Verified against Tod's 24-player table (1st=10000 … 24th=400).
 function calcSeasonPoints(place, totalPlayers, paidPlaces){
   paidPlaces = Math.min(paidPlaces || 3, totalPlayers);
-  var firstNonITM = 300 * (totalPlayers - paidPlaces); // points for (paidPlaces+1)th
-  if(place > paidPlaces){
-    return 300 * (totalPlayers - place + 1);
-  } else if(place === 1){
-    var runnerUp = firstNonITM + 400 * (paidPlaces - 1);
-    return runnerUp + 700;
-  } else {
-    return firstNonITM + 400 * (paidPlaces - place + 1);
-  }
+  var base = 400 * (totalPlayers - place + 1);
+  if(place > paidPlaces) return base;          // non-ITM: base only
+  if(place === 1)        return base + 400;    // winner bonus
+  var rank = paidPlaces - place + 1;           // how many paid spots below this place (1=last paid)
+  if(rank === 1) return base;                  // last paid: no bonus
+  if(rank === 2) return base + 100;            // 2nd from last paid
+  return base + 200;                           // all others inside money (not 1st)
 }
 // Legacy alias (used in calcPayouts payout table)
 function getPoints(place, totalPlayers){ return calcSeasonPoints(place, totalPlayers, Math.min(Number((document.getElementById('pPaidPlaces')||{}).value)||3, totalPlayers)); }
 
-// Payout % splits by paid places
-// Dynamic payout calculator
-// - Last paid place = 2× buy-in (rounded to nearest $20)
-// - All payouts rounded to nearest $20
-// - 1st place gets a heavy premium; amounts increase on the way up
+// Dynamic payout calculator — matches Tod's official payout structure.
+// Uses percentage-ratio splits keyed by paid places (ratios sum to total units).
+// For 6 paid: [16,8,4,3,2,1] / 34 → produces Tod's exact $800/$400/$200/$150/$100/$50
+//             on a $1700 pot (24 players × $70.83 equiv).
+// All amounts rounded to nearest $10. 1st absorbs any rounding remainder.
 // Returns array [1st_$, 2nd_$, ..., Nth_$]
 function calcDynPayouts(pot, paidPlaces, buyIn) {
-  var STEP = 20;
+  var STEP = 10;
   var n = Math.max(1, paidPlaces || 1);
-  var minLast = Math.ceil(2 * buyIn / STEP) * STEP; // $80 for $40 buyin, $200 for $100
+  if(n === 1) return [pot];
 
-  if (n === 1) return [pot];
-  if (pot <= minLast) return [pot]; // pot can't cover the floor
-
-  // Weight ratios for places 1 through N-1 (last place is always minLast)
-  // Keyed by number of places ABOVE the last paid spot.
-  // Balanced ladder: ~1.6-1.75× between consecutive places.
-  var W = {
-    1: [1],           // 2 paid: 1st gets everything above minLast
-    2: [2, 1],        // 3 paid: 1st:2nd pool ratio 2:1  → e.g. $260/$140/$80
-    3: [5, 3, 2],     // 4 paid: ladder ~1.6×            → e.g. $260/$160/$100/$80
-    4: [10, 6, 4, 3], // 5 paid: balanced ~1.6×          → e.g. $280/$160/$120/$80/$80
+  // Ratio tables by number of paid places (index 0 = 1st place)
+  // 6-place ratios are Tod's exact: 1/34 per unit on a 34-unit scale
+  var RATIOS = {
+    2: [2, 1],
+    3: [5, 3, 2],
+    4: [9, 5, 3, 2],
+    5: [8, 5, 3, 2, 1],
+    6: [16, 8, 4, 3, 2, 1]
   };
-  var w = W[Math.min(n - 1, 4)] || W[2];
-  var wSum = w.reduce(function(a, b) { return a + b; }, 0);
-  var pool = pot - minLast;
+  var ratios = RATIOS[n] || RATIOS[3];
+  var total  = ratios.reduce(function(a, b){ return a + b; }, 0);
 
+  // Compute rounded amounts for places 2–N
   var amounts = new Array(n);
-  amounts[n - 1] = minLast; // last place always = 2× buy-in
-
-  // Intermediate places: floor is 1× buy-in (not 2×)
-  for (var i = 1; i < n - 1; i++) {
-    var raw = pool * w[i] / wSum;
-    amounts[i] = Math.max(Math.round(raw / STEP) * STEP, buyIn);
+  var sumFixed = 0;
+  for(var i = 1; i < n; i++){
+    amounts[i] = Math.round(pot * ratios[i] / total / STEP) * STEP;
+    sumFixed += amounts[i];
   }
 
-  // Enforce strict descent — no two places should pay the same amount.
-  // Walk from second-to-last upward; if a place ≤ the one below it, bump it up by $20.
-  for (var j = n - 2; j >= 1; j--) {
-    if (amounts[j] <= amounts[j + 1]) {
+  // 1st place gets the remainder (absorbs rounding drift)
+  amounts[0] = pot - sumFixed;
+
+  // Enforce strict descent from place n back to 2
+  for(var j = n - 2; j >= 1; j--){
+    if(amounts[j] <= amounts[j + 1]){
       amounts[j] = amounts[j + 1] + STEP;
+      // recompute 1st to keep total correct
+      var s = 0;
+      for(var k = 1; k < n; k++) s += amounts[k];
+      amounts[0] = pot - s;
     }
   }
 
-  // 1st place gets whatever's left (always the largest)
-  var sumFixed = 0;
-  for (var k = 1; k < n; k++) sumFixed += amounts[k];
-  amounts[0] = pot - sumFixed;
-
-  // Safety: if pot was too small and 1st place < 2nd place, reduce paid places by 1 and retry
+  // Safety: if pot too small for this many places, drop one and retry
   if(amounts[0] < amounts[1]){
     return calcDynPayouts(pot, paidPlaces - 1, buyIn);
   }
@@ -1381,7 +1380,7 @@ function recalcPayoutRows(useRec){
   // Auto-default places paid if Tod hasn't picked one
   var ppEl=document.getElementById('pPaidPlaces');
   if(ppEl&&!payoutSettings._manualPlaces){
-    var auto=players>=18?'5':players>=12?'4':'3';
+    var auto=players>=20?'6':players>=18?'5':players>=12?'4':'3';
     ppEl.value=auto;
   }
   var paidPlaces=Number((ppEl||{value:5}).value)||5;
