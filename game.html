@@ -568,6 +568,12 @@ var COMMENTARY = {
     ["{P} WINS THE ARDENLEE POKER LEAGUE! Lock up your chips! Lock up your dignity! This person has none to lose anymore!", "hype"],
     ["CHAMPION! {P} takes it all! The money, the glory, and the right to bring this up at literally every future game night!", "hype"],
     ["{P} has won the tournament! A dominant performance! Or a series of lucky coinflips! Does it matter? They won!", "announcer"]
+  ],
+  tonersGame: [
+    ["{TONER} wins the Toner's Game! Turns out drawing {WINNER} from that hat was the best decision {TONER} has made all night. Fifty dollars. Collect it with pride.", "announcer"],
+    ["AND THE TONER'S GAME GOES TO {TONER}! {TONER} drew {WINNER}! FIFTY DOLLARS! FIFTY! DOLLARS! THAT HAT PICK WAS WORTH IT!", "hype"],
+    ["Don't forget the Toner's Game — {TONER} drew {WINNER} and is walking out with an extra fifty bucks. The hat never lies.", "deadpan"],
+    ["{TONER} had {WINNER} in the Toner's Game and now {TONER} has fifty dollars. Sometimes the hat knows things.", "deadpan"]
   ]
 };
 
@@ -1366,6 +1372,15 @@ function showWinner(name, results, paidPlaces){
   // Winner announcement
   var wLine = pickLine(COMMENTARY.winner, {P:name});
   setTimeout(function(){ speak(wLine[0], wLine[1]); }, 800);
+
+  // Toner's Game announcement — fires ~6 seconds later so it doesn't overlap
+  var tg = (specialAwards && specialAwards.tonersGame) ? specialAwards.tonersGame : {};
+  if(tg.player){
+    setTimeout(function(){
+      var tLine = pickLine(COMMENTARY.tonersGame, {TONER: tg.player, WINNER: name});
+      speak(tLine[0], tLine[1]);
+    }, 6000);
+  }
 }
 
 function closeWinner(){
@@ -1409,6 +1424,8 @@ function applyPayoutSettingsToForm(){
 // Rebuild the editable payout-amount rows.
 // useRec=true → always refill from calcDynPayouts recommendations
 // useRec=false → use payoutSettings.amounts if saved, else recommendations
+var TONERS_AMT = 50; // Toner's Game prize — fixed $50 from the pot
+
 function recalcPayoutRows(useRec){
   var buyIn=_autoPayBuyIn(), players=_autoPayPlayers();
   var rebuys=Number((document.getElementById('pRebuys')||{value:0}).value)||payoutSettings.rebuys||0;
@@ -1425,8 +1442,9 @@ function recalcPayoutRows(useRec){
   var pool=_payoutPool(pot);
   var piPot=document.getElementById('payInfoPot'); if(piPot) piPot.textContent=fmtMoney(pot);
 
-  // Determine amounts to pre-fill — recommendations based on payout pool
-  var rec=calcDynPayouts(pool,paidPlaces,buyIn);
+  // Deduct Toner's $50 from pool before calculating place recommendations
+  var prizePool = Math.max(0, pool - TONERS_AMT);
+  var rec=calcDynPayouts(prizePool,paidPlaces,buyIn);
   var saved=(!useRec&&payoutSettings.amounts&&payoutSettings.amounts.length===paidPlaces)
     ? payoutSettings.amounts : null;
   var vals=saved||rec;
@@ -1442,13 +1460,21 @@ function recalcPayoutRows(useRec){
     html+='<span style="width:1.6rem;text-align:center;font-size:1rem">'+medal+'</span>';
     html+='<span style="min-width:5.5rem;color:var(--dim);font-size:0.82rem">'+lbl+'</span>';
     html+='<span style="color:var(--dim);font-size:0.9rem">$</span>';
-    html+='<input type="number" step="20" min="0" value="'+(vals[i]||0)+'" ';
+    html+='<input type="number" step="10" min="0" value="'+(vals[i]||0)+'" ';
     html+='style="width:90px;padding:0.28rem 0.5rem;font-size:0.95rem;background:var(--card);';
     html+='border:1px solid rgba(245,200,66,0.22);border-radius:6px;color:var(--text);text-align:right" ';
     html+='oninput="updatePayoutBalance()">';
     if(!saved) html+='<span style="font-size:0.72rem;color:var(--dim);margin-left:0.2rem">rec</span>';
     html+='</div>';
   }
+  // Fixed Toner's Game line — always $50 from the pot
+  html+='<div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.3rem;padding-top:0.4rem;border-top:1px solid var(--border)">';
+  html+='<span style="width:1.6rem;text-align:center;font-size:1rem">🎩</span>';
+  html+='<span style="min-width:5.5rem;color:var(--dim);font-size:0.82rem">Toner\'s Game</span>';
+  html+='<span style="color:var(--dim);font-size:0.9rem">$</span>';
+  html+='<span style="width:90px;padding:0.28rem 0.5rem;font-size:0.95rem;color:var(--gold);font-weight:600;text-align:right">50</span>';
+  html+='<span style="font-size:0.72rem;color:var(--dim);margin-left:0.2rem">fixed</span>';
+  html+='</div>';
   html+='</div>';
   container.innerHTML=html;
   updatePayoutBalance();
@@ -1462,7 +1488,7 @@ function updatePayoutBalance(){
   var kp=_kittyPct();
   var kittyAmt=pot-pool;
   var inputs=document.querySelectorAll('#payoutAmtRows input');
-  var paid=0; inputs.forEach(function(inp){ paid+=Number(inp.value)||0; });
+  var paid=TONERS_AMT; inputs.forEach(function(inp){ paid+=Number(inp.value)||0; }); // includes fixed $50 Toner's Game
   var diff=pool-paid;
   var diffEl=document.getElementById('balDiff');
   if(diffEl){
