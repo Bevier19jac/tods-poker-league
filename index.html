@@ -855,15 +855,20 @@ function buildRsvpGrid(){
     if(isMe){
       var ia=s==='in'?' class="a-in"':'';var ma=s==='maybe'?' class="a-mb"':'';var oa=s==='out'?' class="a-out"':'';
       btns='<div class="rsvp-btns"><button'+ia+' onclick="setStatus(\'in\')">&#10003; In</button><button'+ma+' onclick="setStatus(\'maybe\')">? Maybe</button><button'+oa+' onclick="setStatus(\'out\')">&#10007; Out</button></div>';
-      // Toner's Game dropdown — who did this player draw from the hat?
+      // Toner's Game dropdown — only players who RSVPed "in" (excluding self)
       var existingDraw=tonersDraws[p.name]||'';
-      var otherPlayers=L.standings.filter(function(q){return q.name!==p.name;}).map(function(q){return q.name;}).sort();
-      var opts='<option value="">— pick a player —</option>';
-      otherPlayers.forEach(function(n){opts+='<option value="'+n+'"'+(n===existingDraw?' selected':'')+'>'+n+'</option>';});
-      btns+='<div style="margin-top:0.55rem;width:100%">'
-          +'<div style="font-size:0.6rem;color:var(--dim);margin-bottom:0.25rem;letter-spacing:0.03em">🎩 Who did you draw from the hat?</div>'
-          +'<select onchange="saveTonersDraw(\''+p.name+'\',this.value)" style="width:100%;padding:0.28rem 0.5rem;border-radius:7px;background:#1e1e30;border:1px solid rgba(245,200,66,0.2);color:var(--text);font-size:0.65rem;font-family:\'Inter\',sans-serif;cursor:pointer">'+opts+'</select>'
-          +'</div>';
+      var otherPlayers=L.standings.filter(function(q){return q.name!==p.name&&fbStatuses[q.name]==='in';}).map(function(q){return q.name;}).sort();
+      btns+='<div style="margin-top:0.55rem;width:100%">';
+      btns+='<div style="font-size:0.6rem;color:var(--dim);margin-bottom:0.25rem;letter-spacing:0.03em">🎩 Who did you draw from the hat?</div>';
+      if(otherPlayers.length===0){
+        btns+='<div style="font-size:0.62rem;color:var(--dim);font-style:italic;padding:0.25rem 0.4rem">Waiting for others to check in...</div>';
+      } else {
+        var opts='<option value="">— pick a player —</option>';
+        otherPlayers.forEach(function(n){opts+='<option value="'+n+'"'+(n===existingDraw?' selected':'')+'>'+n+'</option>';});
+        btns+='<select onchange="saveTonersDraw(\''+p.name+'\',this.value)" style="width:100%;padding:0.28rem 0.5rem;border-radius:7px;background:#1e1e30;border:1px solid rgba(245,200,66,0.2);color:var(--text);font-size:0.65rem;font-family:\'Inter\',sans-serif;cursor:pointer">'+opts+'</select>';
+        if(existingDraw) btns+='<div style="font-size:0.58rem;color:#4ade80;margin-top:0.2rem">✓ Saved: '+existingDraw+'</div>';
+      }
+      btns+='</div>';
     }
     html+='<div class="rsvp-card'+sClass+mClass+'">'+playerChip(p,i,68)+'<div class="rc-name">'+p.name+'</div>'+badge+btns+'</div>';
   });

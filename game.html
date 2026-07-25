@@ -343,11 +343,14 @@ body.tv .tv-footer{display:block}
         <span style="color:var(--dim)">Pot: <strong id="payInfoPot" style="color:var(--gold)">$—</strong></span>
       </div>
       <!-- Mid-Season Championship toggle -->
-      <label style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;cursor:pointer;font-size:0.83rem;color:var(--text)">
-        <input type="checkbox" id="pMidSeason" onchange="savePayoutSettings()" style="width:16px;height:16px;accent-color:var(--gold)">
+      <label style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.4rem;cursor:pointer;font-size:0.83rem;color:var(--text)">
+        <input type="checkbox" id="pMidSeason" onchange="savePayoutSettings();document.getElementById('midSeasonReminder').style.display=this.checked?'none':'';" style="width:16px;height:16px;accent-color:var(--gold)">
         <span>🏆 <strong>Mid-Season Championship mode</strong></span>
         <span style="color:var(--dim);font-size:0.75rem">(uses Tod's official 24-player points table)</span>
       </label>
+      <div id="midSeasonReminder" style="display:;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:8px;padding:0.4rem 0.7rem;font-size:0.75rem;color:#f87171;margin-bottom:0.8rem">
+        ⚠️ <strong>Tonight is the Mid-Season Championship</strong> — check this box before saving!
+      </div>
       <div class="payout-inputs" style="margin-bottom:0.9rem">
         <div class="fi"><label>Rebuys</label><input type="number" id="pRebuys" value="0" min="0" onchange="recalcPayoutRows(true)"></div>
         <div class="fi"><label>Places Paid</label>
@@ -1373,13 +1376,13 @@ function showWinner(name, results, paidPlaces){
   var wLine = pickLine(COMMENTARY.winner, {P:name});
   setTimeout(function(){ speak(wLine[0], wLine[1]); }, 800);
 
-  // Toner's Game announcement — fires ~6 seconds later so it doesn't overlap
+  // Toner's Game announcement — fires ~8 seconds later so it doesn't overlap
   var tg = (specialAwards && specialAwards.tonersGame) ? specialAwards.tonersGame : {};
   if(tg.player){
     setTimeout(function(){
       var tLine = pickLine(COMMENTARY.tonersGame, {TONER: tg.player, WINNER: name});
       speak(tLine[0], tLine[1]);
-    }, 6000);
+    }, 8000);
   }
 }
 
@@ -1417,7 +1420,7 @@ function applyPayoutSettingsToForm(){
     payoutSettings._manualPlaces=true; // treat Firebase-saved value as explicit
   }
   if(kpEl&&p.kittyPct!=null) kpEl.value=p.kittyPct;
-  if(msEl) msEl.checked = !!p.midSeason;
+  if(msEl){ msEl.checked = !!p.midSeason; var rem=document.getElementById('midSeasonReminder'); if(rem) rem.style.display=p.midSeason?'none':''; }
   recalcPayoutRows(false); // show saved amounts if present, else recommendations
 }
 
