@@ -342,6 +342,12 @@ body.tv .tv-footer{display:block}
         <span style="color:var(--dim)">Players: <strong id="payInfoPlayers" style="color:var(--gold)">—</strong></span>
         <span style="color:var(--dim)">Pot: <strong id="payInfoPot" style="color:var(--gold)">$—</strong></span>
       </div>
+      <!-- Mid-Season Championship toggle -->
+      <label style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;cursor:pointer;font-size:0.83rem;color:var(--text)">
+        <input type="checkbox" id="pMidSeason" onchange="savePayoutSettings()" style="width:16px;height:16px;accent-color:var(--gold)">
+        <span>🏆 <strong>Mid-Season Championship mode</strong></span>
+        <span style="color:var(--dim);font-size:0.75rem">(uses Tod's official 24-player points table)</span>
+      </label>
       <div class="payout-inputs" style="margin-bottom:0.9rem">
         <div class="fi"><label>Rebuys</label><input type="number" id="pRebuys" value="0" min="0" onchange="recalcPayoutRows(true)"></div>
         <div class="fi"><label>Places Paid</label>
@@ -565,26 +571,39 @@ var COMMENTARY = {
   ]
 };
 
-// Season points formula — matches Tod's official Mid-Season Championship table exactly.
-// Base:  400 × (totalPlayers − place + 1)  for every seat.
-// ITM bonus on top of base:
-//   1st place      → +400
-//   2nd–(n-2) paid → +200  (all paid seats except the bottom two)
-//   2nd-from-last  → +100
-//   Last paid      → +0
-// Verified against Tod's 24-player table (1st=10000 … 24th=400).
+// Season points formula — regular league nights.
+//   Non-ITM:  300 × (totalPlayers − place + 1)
+//   ITM:      firstNonITM + 400 × (paidPlaces − place + 1)
+//   Winner:   runner-up points + 700
 function calcSeasonPoints(place, totalPlayers, paidPlaces){
   paidPlaces = Math.min(paidPlaces || 3, totalPlayers);
-  var base = 400 * (totalPlayers - place + 1);
-  if(place > paidPlaces) return base;          // non-ITM: base only
-  if(place === 1)        return base + 400;    // winner bonus
-  var rank = paidPlaces - place + 1;           // how many paid spots below this place (1=last paid)
-  if(rank === 1) return base;                  // last paid: no bonus
-  if(rank === 2) return base + 100;            // 2nd from last paid
-  return base + 200;                           // all others inside money (not 1st)
+  var firstNonITM = 300 * (totalPlayers - paidPlaces);
+  if(place > paidPlaces){
+    return 300 * (totalPlayers - place + 1);
+  } else if(place === 1){
+    var runnerUp = firstNonITM + 400 * (paidPlaces - 1);
+    return runnerUp + 700;
+  } else {
+    return firstNonITM + 400 * (paidPlaces - place + 1);
+  }
 }
-// Legacy alias (used in calcPayouts payout table)
-function getPoints(place, totalPlayers){ return calcSeasonPoints(place, totalPlayers, Math.min(Number((document.getElementById('pPaidPlaces')||{}).value)||3, totalPlayers)); }
+
+// Mid-Season Championship points — Tod's official lookup table (24-player format).
+// Place 1 → index 0 → 10,000 pts. Place N → index N-1.
+// For 23 players: 1st=10000, 23rd=800. For 24: 1st=10000, 24th=400.
+// Smaller field = each position worth slightly more (fair — fewer people to beat).
+// Source: Tod Ellison email 2026-07-24, "Re: points".
+var MID_SEASON_PTS_TABLE = [10000,9400,9000,8600,8100,7600,7200,6800,6400,6000,5600,5200,4800,4400,4000,3600,3200,2800,2400,2000,1600,1200,800,400];
+function getMidSeasonPoints(place, totalPlayers){
+  var idx = (place - 1);
+  if(idx >= 0 && idx < MID_SEASON_PTS_TABLE.length) return MID_SEASON_PTS_TABLE[idx];
+  return MID_SEASON_PTS_TABLE[MID_SEASON_PTS_TABLE.length - 1]; // fallback: 400
+}
+// Alias used in the payout display table — respects mid-season mode
+function getPoints(place, totalPlayers){
+  if(payoutSettings && payoutSettings.midSeason) return getMidSeasonPoints(place, totalPlayers);
+  return calcSeasonPoints(place, totalPlayers, Math.min(Number((document.getElementById('pPaidPlaces')||{}).value)||3, totalPlayers));
+}
 
 // Dynamic payout calculator — matches Tod's official payout structure.
 // Uses percentage-ratio splits keyed by paid places (ratios sum to total units).
@@ -654,8 +673,9 @@ var blindStructure = [];
 var gamePlayers = {}; // { "Name": { status:"in"|"out"|"winner", place:N } }
 var payoutSettings = { buyIn:100, players:10, rebuys:0, rebuyAmt:100, paidPlaces:null, amounts:null, split:'auto' };
 
-var db = null, stateRef = null, structRef = null, playersRef = null, payoutRef = null, specialAwardsRef = null;
+var db = null, stateRef = null, structRef = null, playersRef = null, payoutRef = null, specialAwardsRef = null, tonersDrawsRef = null;
 var specialAwards = { highHand: {player:'', hand:''}, tonersGame: {player:'', note:''} };
+var tonersDraws = {}; // { "PlayerName": "DrawnName" } — who each player picked from the hat
 var tickInt = null, commentaryInt = null;
 var luAutoInt = null;
 var gameEnded = false; // guard against double endGame calls
@@ -676,12 +696,14 @@ var levelUpShownForLevel = -1; // prevents level-up overlay from looping on same
     playersRef        = db.ref('gameNight/players');
     payoutRef         = db.ref('gameNight/payoutSettings');
     specialAwardsRef  = db.ref('gameNight/specialAwards');
+    tonersDrawsRef    = db.ref('gameNight/tonersDraws');
 
     stateRef.on('value',         function(s){ var v=s.val(); if(v){ timerState=v; } renderTimer(); updateTimerControls(); updateLiveBadge(); });
     structRef.on('value',        function(s){ var v=s.val(); blindStructure=(v&&v.length)?v:[]; renderTimer(); calcPayouts(); });
     playersRef.on('value',       function(s){ var v=s.val(); gamePlayers=v||{}; renderPlayers(); calcPayouts(); checkWinner(); });
     payoutRef.on('value',        function(s){ var v=s.val(); if(v){ payoutSettings=v; applyPayoutSettingsToForm(); calcPayouts(); } });
     specialAwardsRef.on('value', function(s){ var v=s.val(); if(v) specialAwards=v; renderSpecialAwards(); });
+    tonersDrawsRef.on('value',   function(s){ var v=s.val(); tonersDraws=v||{}; renderSpecialAwards(); });
   }
 
   // If Tod, show PIN modal (Firebase db now set up so we can read stored PIN)
@@ -1109,7 +1131,7 @@ function selfBust(){
   var myName = (localStorage.getItem('tpl_myname')||'').trim();
   if(!myName || !gamePlayers[myName] || gamePlayers[myName].status !== 'in') return;
   var inCount = Object.keys(gamePlayers).filter(function(n){ return gamePlayers[n].status==='in'; }).length;
-  var place = inCount; // still-in count == their finish position
+  var place = inCount;
   if(!confirm('Confirm you busted out in ' + ordinal(place) + ' place?')) return;
   bustPlayer(myName, place);
 }
@@ -1175,11 +1197,21 @@ function endGame(winnerName){
     var p = gamePlayers[n];
     var place = p.place || (p.status==='winner' ? 1 : totalPlayers);
     var isITM = place <= paidPlaces;
-    var pts  = calcSeasonPoints(place, totalPlayers, paidPlaces);
+    var pts = payoutSettings.midSeason
+      ? getMidSeasonPoints(place, totalPlayers)
+      : calcSeasonPoints(place, totalPlayers, paidPlaces);
     var cash = isITM ? (dynAmts[place-1] || 0) : 0;
     return { name:n, place:place, points:pts, winnings:cash, itm:isITM };
   });
   results.sort(function(a,b){ return a.place - b.place; });
+
+  // Auto-detect Toner's Game winner from draw log
+  var tonersWinner = findTonersWinner(winnerName);
+  if(tonersWinner && !specialAwards.tonersGame.player){
+    specialAwards.tonersGame.player = tonersWinner;
+    specialAwards.tonersGame.note   = tonersWinner + ' drew ' + winnerName;
+    if(specialAwardsRef) try{ specialAwardsRef.set(specialAwards); }catch(e){}
+  }
 
   // Write to Firebase
   if(db){
@@ -1192,7 +1224,8 @@ function endGame(winnerName){
         date: dateKey, label: evtLabel,
         playerCount: totalPlayers, winner: winnerName,
         results: results, timestamp: Date.now(),
-        specialAwards: specialAwards
+        specialAwards: specialAwards,
+        tonersDraws: tonersDraws
       });
       // Snapshot last-game stats per player into Firebase standings
       var standUpd = {};
@@ -1307,7 +1340,9 @@ function showWinner(name, results, paidPlaces){
   var _amts    = (payoutSettings.amounts&&payoutSettings.amounts.length)
     ? payoutSettings.amounts : calcDynPayouts(totalPot,pp,buyIn);
   var winCash  = (results&&results[0]) ? results[0].winnings : (_amts[0]||0);
-  var winPts   = calcSeasonPoints(1, totalPlayers, pp);
+  var winPts   = payoutSettings.midSeason
+    ? getMidSeasonPoints(1, totalPlayers)
+    : calcSeasonPoints(1, totalPlayers, pp);
   document.getElementById('winnerStats').innerHTML =
     '<div class="ws-item"><div class="ws-label">Prize</div><div class="ws-val">'+fmtMoney(winCash)+'</div></div>'+
     '<div class="ws-item"><div class="ws-label">Season Pts</div><div class="ws-val">+'+winPts.toLocaleString()+'</div></div>'+
@@ -1360,13 +1395,14 @@ function _autoPayPlayers(){
 
 function applyPayoutSettingsToForm(){
   var p=payoutSettings;
-  var reEl=document.getElementById('pRebuys'), ppEl=document.getElementById('pPaidPlaces'), kpEl=document.getElementById('pKittyPct');
+  var reEl=document.getElementById('pRebuys'), ppEl=document.getElementById('pPaidPlaces'), kpEl=document.getElementById('pKittyPct'), msEl=document.getElementById('pMidSeason');
   if(reEl&&p.rebuys!=null) reEl.value=p.rebuys;
   if(ppEl&&p.paidPlaces){
     ppEl.value=String(p.paidPlaces);
     payoutSettings._manualPlaces=true; // treat Firebase-saved value as explicit
   }
   if(kpEl&&p.kittyPct!=null) kpEl.value=p.kittyPct;
+  if(msEl) msEl.checked = !!p.midSeason;
   recalcPayoutRows(false); // show saved amounts if present, else recommendations
 }
 
@@ -1451,17 +1487,19 @@ function savePayoutSettings(){
   var amounts=[];
   document.querySelectorAll('#payoutAmtRows input').forEach(function(inp){ amounts.push(Number(inp.value)||0); });
   var kittyPct=_kittyPct();
+  var midSeason=!!(document.getElementById('pMidSeason')||{}).checked;
   var pot=players*buyIn+rebuys*buyIn;
   var pool=_payoutPool(pot);
   if(!amounts.length) amounts=calcDynPayouts(pool,paidPlaces,buyIn);
   var s={
     buyIn:buyIn, players:players, rebuys:rebuys, rebuyAmt:buyIn,
-    paidPlaces:paidPlaces, amounts:amounts, split:'custom', kittyPct:kittyPct
+    paidPlaces:paidPlaces, amounts:amounts, split:'custom', kittyPct:kittyPct,
+    midSeason:midSeason
   };
   payoutSettings=s;
   if(payoutRef) try{payoutRef.set(s);}catch(e){}
   calcPayouts();
-  showToast('✅ Payouts published');
+  showToast(midSeason ? '🏆 Mid-Season mode saved!' : '✅ Payouts published');
 }
 
 function saveSpecialAwards(){
@@ -1480,7 +1518,8 @@ function renderSpecialAwards(){
   if(!el||!ct) return;
   var hh=(specialAwards.highHand)||{};
   var tg=(specialAwards.tonersGame)||{};
-  if(!hh.player&&!tg.player){ el.style.display='none'; return; }
+  var drawCount=Object.keys(tonersDraws).length;
+  if(!hh.player&&!tg.player&&!drawCount){ el.style.display='none'; return; }
   el.style.display='';
   var html='';
   if(hh.player){
@@ -1492,12 +1531,24 @@ function renderSpecialAwards(){
     html+='</div></div>';
   }
   if(tg.player){
-    html+='<div style="display:flex;align-items:center;gap:0.7rem;padding:0.65rem 0">';
-    html+='<span style="font-size:1.4rem">🎯</span><div>';
-    html+='<div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.1rem">Toner\'s Game</div>';
-    html+='<div style="font-weight:700;color:var(--gold);font-size:1rem">'+tg.player+'</div>';
+    html+='<div style="display:flex;align-items:center;gap:0.7rem;padding:0.65rem 0;border-bottom:1px solid var(--border)">';
+    html+='<span style="font-size:1.4rem">🎩</span><div>';
+    html+='<div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.1rem">Toner\'s Game Winner</div>';
+    html+='<div style="font-weight:700;color:var(--gold);font-size:1rem">'+tg.player+' 🎉 $50</div>';
     if(tg.note) html+='<div style="font-size:0.82rem;color:var(--dim);margin-top:0.1rem">'+tg.note+'</div>';
     html+='</div></div>';
+  }
+  // Live draw log — shows as players bust
+  if(drawCount){
+    html+='<div style="padding:0.65rem 0">';
+    html+='<div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem">🎩 Toner\'s Draws ('+drawCount+' logged)</div>';
+    Object.keys(tonersDraws).sort().forEach(function(p){
+      var drew=tonersDraws[p];
+      html+='<div style="font-size:0.8rem;color:var(--text);padding:0.2rem 0">';
+      html+='<span style="color:var(--dim)">'+p+'</span> drew <strong style="color:var(--gold)">'+drew+'</strong>';
+      html+='</div>';
+    });
+    html+='</div>';
   }
   ct.innerHTML=html;
   // Pre-fill admin inputs if in admin mode
@@ -1765,6 +1816,31 @@ function showToast(msg, dur){
 setTimeout(function(){
   if(timerState.running && commentaryEnabled) maybeFireMidLevelCommentary();
 }, 90000);
+// ═══════════════════════════════════════════════════════════
+//  TONER'S GAME — draw tracking
+// ═══════════════════════════════════════════════════════════
+
+// Save a player's draw to Firebase
+function saveTonersDraw(playerName, drawnName){
+  if(!playerName || !drawnName) return;
+  var upd = {};
+  upd[playerName] = drawnName;
+  tonersDraws[playerName] = drawnName;
+  if(tonersDrawsRef) try{ tonersDrawsRef.update(upd); }catch(e){}
+}
+
+// Check if a winner's name has been drawn by anyone → return drawer's name or null
+function findTonersWinner(winnerName){
+  var keys = Object.keys(tonersDraws);
+  for(var i=0;i<keys.length;i++){
+    if(tonersDraws[keys[i]] === winnerName) return keys[i];
+  }
+  return null;
+}
+
+
 </script>
+
+
 </body>
 </html>
