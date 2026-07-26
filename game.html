@@ -1367,7 +1367,7 @@ function closeWinner(){
 // ═══════════════════════════════════════════════════════════
 function _autoPayBuyIn(){
   return (typeof LEAGUE!=='undefined'&&LEAGUE.nextGame&&LEAGUE.nextGame.buyin)
-    ? Number(LEAGUE.nextGame.buyin) : (Number(payoutSettings.buyIn)||100);
+    ? Number(LEAGUE.nextGame.buyin) : (Number(payoutSettings.buyIn)||40);
 }
 function _kittyPct(){
   return Number((document.getElementById('pKittyPct')||{value:0}).value)||Number(payoutSettings.kittyPct)||0;
