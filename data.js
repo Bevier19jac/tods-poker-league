@@ -72,11 +72,12 @@ const LEAGUE = {
 
   standings: [
     // Mid-Season Championship (2026-07-25, 23 players) — official MID_SEASON_PTS_TABLE used
-    { name: "Tod",     fullName: "Tod Ellison",       events: 13, points: 52900, wins: 1, cashes: 4,  avgPlace: 8.2,  avatar: "avatars/tod.png"     },
+    // Base points from Tod's email (Event 12, 2026-07-17) + mid-season points
+    { name: "Tod",     fullName: "Tod Ellison",       events: 13, points: 53300, wins: 1, cashes: 4,  avgPlace: 8.2,  avatar: "avatars/tod.png"     },
     { name: "Guy",     fullName: "Guy Caldwell",      events: 10, points: 50200, wins: 2, cashes: 7,  avgPlace: 6.5,  avatar: "avatars/guy.png"     },
-    { name: "Michael", fullName: "Michael Curtin",    events: 8,  points: 43500, wins: 0, cashes: 5,  avgPlace: 7.9,  avatar: "avatars/michael.png" },
-    { name: "Jacob",   fullName: "Jacob Bevier",      events: 11, points: 43400, wins: 0, cashes: 4,  avgPlace: 8.4,  avatar: "avatars/jacob.png"   },
-    { name: "Chris P", fullName: "Chris Pettis",      events: 12, points: 42300, wins: 0, cashes: 5,  avgPlace: 10.1, avatar: "avatars/chris_p.png" },
+    { name: "Jacob",   fullName: "Jacob Bevier",      events: 11, points: 43700, wins: 0, cashes: 4,  avgPlace: 8.4,  avatar: "avatars/jacob.png"   },
+    { name: "Michael", fullName: "Michael Curtin",    events: 8,  points: 43600, wins: 0, cashes: 5,  avgPlace: 7.9,  avatar: "avatars/michael.png" },
+    { name: "Chris P", fullName: "Chris Pettis",      events: 12, points: 42500, wins: 0, cashes: 5,  avgPlace: 10.1, avatar: "avatars/chris_p.png" },
     { name: "JH",      fullName: "JH Hooper",         events: 10, points: 41100, wins: 2, cashes: 4,  avgPlace: 9.4,  avatar: "avatars/jh.png"      },
     { name: "Steve",   fullName: "Steve Mills",       events: 9,  points: 39700, wins: 1, cashes: 3,  avgPlace: 7.1  },
     { name: "Nate",    fullName: "Nate Woods",        events: 10, points: 36200, wins: 0, cashes: 2,  avgPlace: 10.3, avatar: "avatars/nate.png"    },
@@ -85,8 +86,8 @@ const LEAGUE = {
     { name: "Chris F", fullName: "Chris Frady",       events: 9,  points: 34300, wins: 0, cashes: 3,  avgPlace: 9.6,  avatar: "avatars/chris_f.png" },
     { name: "Philo",   fullName: "Philo Mitman",      events: 13, points: 34200, wins: 0, cashes: 1,  avgPlace: 12.8, avatar: "avatars/philo.png"   },
     { name: "Tom",     fullName: "Tom Kane",          events: 10, points: 34000, wins: 0, cashes: 2,  avgPlace: 10.8, avatar: "avatars/tom.png"     },
+    { name: "Jeremy",  fullName: "Jeremy Bollinger",  events: 9,  points: 32700, wins: 2, cashes: 2,  avgPlace: 11.2, avatar: "avatars/jeremy.png"  },
     { name: "Matt",    fullName: "Matt Therriault",   events: 9,  points: 32300, wins: 0, cashes: 0,  avgPlace: 10.6, avatar: "avatars/matt.png"    },
-    { name: "Jeremy",  fullName: "Jeremy Bollinger",  events: 9,  points: 31900, wins: 2, cashes: 2,  avgPlace: 11.2, avatar: "avatars/jeremy.png"  },
     { name: "Ryan",    fullName: "Ryan Zondervan",    events: 7,  points: 31250, wins: 0, cashes: 4,  avgPlace: 8.4  },
     { name: "Steele",  fullName: "Steele Persons",    events: 11, points: 29500, wins: 0, cashes: 1,  avgPlace: 11.9 },
     { name: "Jay",     fullName: "Jay Rose",          events: 9,  points: 28900, wins: 1, cashes: 2,  avgPlace: 11.1, avatar: "avatars/jay.png"     },
@@ -100,8 +101,8 @@ const LEAGUE = {
     { name: "Jake",    fullName: "Jake Westfall",     events: 5,  points: 16000, wins: 0, cashes: 2,  avgPlace: 12.0, avatar: "avatars/jake_w.png"  },
     { name: "Jason",   fullName: "Jason Oliver",      events: 3,  points: 12300, wins: 0, cashes: 1,  avgPlace: 8.0  },
     { name: "Dom",     fullName: "Dom",               events: 2,  points:  6000, wins: 0, cashes: 0,  avgPlace: 12.5 },
-    { name: "Justin",  fullName: "Justin Harmond",    events: 4,  points:  5100, wins: 0, cashes: 0,  avgPlace: 19.5, avatar: "avatars/justin.png"  },
-    { name: "Darin",   fullName: "Darin Brewer",      events: 2,  points:  3600, wins: 0, cashes: 0,  avgPlace: 17.0 },
+    { name: "Justin",  fullName: "Justin Harmond",    events: 4,  points:  5600, wins: 0, cashes: 0,  avgPlace: 19.5, avatar: "avatars/justin.png"  },
+    { name: "Darin",   fullName: "Darin Brewer",      events: 2,  points:  4300, wins: 0, cashes: 0,  avgPlace: 17.0 },
     { name: "Eli",     fullName: "Eli Robbins",       events: 1,  points:  3000, wins: 0, cashes: 0,  avgPlace: 10.0 },
     { name: "James",   fullName: "James",             events: 1,  points:  1800, wins: 0, cashes: 0,  avgPlace: 18.0 },
     { name: "Jeff",    fullName: "Jeff Mennicke",     events: 1,  points:  1200, wins: 0, cashes: 0,  avgPlace: 20.0 },
