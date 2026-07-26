@@ -992,18 +992,27 @@ function resetTimer(){
 }
 function clearPlayers(){
   if(!isAdmin||!db) return;
-  if(!confirm('Clear all players from this game? Use this after a game ends to reset for next time.')) return;
+  if(!confirm('Clear all players and reset payouts for the next game?')) return;
   gameEnded = false;
   gamePlayers = {};
+  // Reset payout settings to fresh defaults
+  var buyIn = (typeof LEAGUE!=='undefined'&&LEAGUE.nextGame) ? LEAGUE.nextGame.buyin : 40;
+  var rebuy = (typeof LEAGUE!=='undefined'&&LEAGUE.nextGame) ? LEAGUE.nextGame.buyin : 40;
+  payoutSettings = { buyIn:buyIn, players:0, rebuys:0, rebuyAmt:rebuy, paidPlaces:null, amounts:null, split:'auto', midSeason:false };
+  specialAwards = { highHand:{player:'',hand:''} };
   try{
     db.ref('gameNight/players').remove();
+    db.ref('gameNight/payoutSettings').remove();
+    db.ref('gameNight/specialAwards').remove();
     var fbKey = getFbKey();
     db.ref('seats_'+fbKey).remove();
   }catch(e){ console.warn('clearPlayers error:',e); }
   renderPlayers();
-  calcPayouts();
+  renderSpecialAwards();
+  applyPayoutSettingsToForm();
+  recalcPayoutRows(true);
   document.getElementById('winnerOverlay').classList.remove('show');
-  showToast('✅ Players cleared');
+  showToast('✅ Players and payouts cleared for next game');
 }
 
 // TV mode
