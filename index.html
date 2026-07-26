@@ -665,7 +665,6 @@ function updateSeatBtn(){
 var fbKey='rsvp_'+ng.date.replace(/-/g,'_');
 var fbStatuses={};var fbLive=false;
 var playerPhotos={}; // { name: base64DataUrl } — synced from Firebase playerPhotos/{name}
-var tonersDraws={};  // { playerName: drawnPlayerName } — synced from Firebase gameNight/tonersDraws
 function loadLocal(){try{var s=localStorage.getItem('tpl_rsvp_'+fbKey);fbStatuses=s?JSON.parse(s):{};}catch(e){fbStatuses={};}}
 
 // ── AUTO-RESET RSVPs AT 9PM ON GAME NIGHT; CLEAR SEATS NEXT DAY ──
@@ -749,13 +748,6 @@ function startFirebaseListeners(){
       buildRsvpGrid();
     }, function(err){ console.warn('Photos Firebase error:',err.message); });
   }catch(e){ console.warn('Photos init error:',e.message); }
-  // Toner's Game draws — players enter on RSVP page; game.html auto-detects winner
-  try{
-    firebase.database().ref('gameNight/tonersDraws').on('value',function(snap){
-      tonersDraws=snap.val()||{};
-      buildRsvpGrid(); // re-render so dropdown reflects saved draw
-    });
-  }catch(e){console.warn('Firebase tonersDraws error:',e.message);}
   // NOTE: Game night live player tracking lives in game.html only.
   // startGameNightListeners() intentionally removed from home page.
 }
@@ -778,17 +770,6 @@ function setStatus(status){
   }
 }
 window.setStatus=setStatus;
-function saveTonersDraw(playerName, drawnName){
-  if(!playerName || !drawnName) return;
-  tonersDraws[playerName]=drawnName;
-  if(window._firebaseReady){
-    try{
-      var upd={};upd[playerName]=drawnName;
-      firebase.database().ref('gameNight/tonersDraws').update(upd);
-    }catch(e){console.warn('Firebase tonersDraws save error:',e.message);}
-  }
-}
-window.saveTonersDraw=saveTonersDraw;
 function resetAllRsvp(){
   if(!confirm('Reset all RSVP responses for this event?'))return;
   if(fbLive){
@@ -855,20 +836,6 @@ function buildRsvpGrid(){
     if(isMe){
       var ia=s==='in'?' class="a-in"':'';var ma=s==='maybe'?' class="a-mb"':'';var oa=s==='out'?' class="a-out"':'';
       btns='<div class="rsvp-btns"><button'+ia+' onclick="setStatus(\'in\')">&#10003; In</button><button'+ma+' onclick="setStatus(\'maybe\')">? Maybe</button><button'+oa+' onclick="setStatus(\'out\')">&#10007; Out</button></div>';
-      // Toner's Game dropdown — only players who RSVPed "in" (excluding self)
-      var existingDraw=tonersDraws[p.name]||'';
-      var otherPlayers=L.standings.filter(function(q){return q.name!==p.name&&fbStatuses[q.name]==='in';}).map(function(q){return q.name;}).sort();
-      btns+='<div style="margin-top:0.55rem;width:100%">';
-      btns+='<div style="font-size:0.6rem;color:var(--dim);margin-bottom:0.25rem;letter-spacing:0.03em">🎩 Who did you draw from the hat?</div>';
-      if(otherPlayers.length===0){
-        btns+='<div style="font-size:0.62rem;color:var(--dim);font-style:italic;padding:0.25rem 0.4rem">Waiting for others to check in...</div>';
-      } else {
-        var opts='<option value="">— pick a player —</option>';
-        otherPlayers.forEach(function(n){opts+='<option value="'+n+'"'+(n===existingDraw?' selected':'')+'>'+n+'</option>';});
-        btns+='<select onchange="saveTonersDraw(\''+p.name+'\',this.value)" style="width:100%;padding:0.28rem 0.5rem;border-radius:7px;background:#1e1e30;border:1px solid rgba(245,200,66,0.2);color:var(--text);font-size:0.65rem;font-family:\'Inter\',sans-serif;cursor:pointer">'+opts+'</select>';
-        if(existingDraw) btns+='<div style="font-size:0.58rem;color:#4ade80;margin-top:0.2rem">✓ Saved: '+existingDraw+'</div>';
-      }
-      btns+='</div>';
     }
     html+='<div class="rsvp-card'+sClass+mClass+'">'+playerChip(p,i,68)+'<div class="rc-name">'+p.name+'</div>'+badge+btns+'</div>';
   });

@@ -381,11 +381,6 @@ body.tv .tv-footer{display:block}
             <input type="text" id="hhPlayer" placeholder="Player name" style="flex:1;min-width:110px;padding:0.3rem 0.6rem;background:var(--card);border:1px solid rgba(245,200,66,0.22);border-radius:6px;color:var(--text);font-size:0.88rem">
             <input type="text" id="hhHand" placeholder="Hand (e.g. Quad Aces)" style="flex:2;min-width:150px;padding:0.3rem 0.6rem;background:var(--card);border:1px solid rgba(245,200,66,0.22);border-radius:6px;color:var(--text);font-size:0.88rem">
           </div>
-          <div style="font-size:0.78rem;color:var(--dim);margin-top:0.3rem">🎯 Toner's Game</div>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-            <input type="text" id="tgPlayer" placeholder="Player name" style="flex:1;min-width:110px;padding:0.3rem 0.6rem;background:var(--card);border:1px solid rgba(245,200,66,0.22);border-radius:6px;color:var(--text);font-size:0.88rem">
-            <input type="text" id="tgNote" placeholder="Note (optional)" style="flex:2;min-width:150px;padding:0.3rem 0.6rem;background:var(--card);border:1px solid rgba(245,200,66,0.22);border-radius:6px;color:var(--text);font-size:0.88rem">
-          </div>
         </div>
         <button class="btn btn-outline btn-sm" onclick="saveSpecialAwards()">💾 Save Awards</button>
       </div>
@@ -571,12 +566,6 @@ var COMMENTARY = {
     ["{P} WINS THE ARDENLEE POKER LEAGUE! Lock up your chips! Lock up your dignity! This person has none to lose anymore!", "hype"],
     ["CHAMPION! {P} takes it all! The money, the glory, and the right to bring this up at literally every future game night!", "hype"],
     ["{P} has won the tournament! A dominant performance! Or a series of lucky coinflips! Does it matter? They won!", "announcer"]
-  ],
-  tonersGame: [
-    ["{TONER} wins the Toner's Game! Turns out drawing {WINNER} from that hat was the best decision {TONER} has made all night. Fifty dollars. Collect it with pride.", "announcer"],
-    ["AND THE TONER'S GAME GOES TO {TONER}! {TONER} drew {WINNER}! FIFTY DOLLARS! FIFTY! DOLLARS! THAT HAT PICK WAS WORTH IT!", "hype"],
-    ["Don't forget the Toner's Game — {TONER} drew {WINNER} and is walking out with an extra fifty bucks. The hat never lies.", "deadpan"],
-    ["{TONER} had {WINNER} in the Toner's Game and now {TONER} has fifty dollars. Sometimes the hat knows things.", "deadpan"]
   ]
 };
 
@@ -680,11 +669,10 @@ var commentaryEnabled = true;
 var timerState = { running:false, currentLevel:0, levelStartTime:null, totalPausedMs:0, pausedAt:null };
 var blindStructure = [];
 var gamePlayers = {}; // { "Name": { status:"in"|"out"|"winner", place:N } }
-var payoutSettings = { buyIn:100, players:10, rebuys:0, rebuyAmt:100, paidPlaces:null, amounts:null, split:'auto' };
+var payoutSettings = { buyIn:40, players:10, rebuys:0, rebuyAmt:40, paidPlaces:null, amounts:null, split:'auto' };
 
-var db = null, stateRef = null, structRef = null, playersRef = null, payoutRef = null, specialAwardsRef = null, tonersDrawsRef = null;
-var specialAwards = { highHand: {player:'', hand:''}, tonersGame: {player:'', note:''} };
-var tonersDraws = {}; // { "PlayerName": "DrawnName" } — who each player picked from the hat
+var db = null, stateRef = null, structRef = null, playersRef = null, payoutRef = null, specialAwardsRef = null;
+var specialAwards = { highHand: {player:'', hand:''} };
 var tickInt = null, commentaryInt = null;
 var luAutoInt = null;
 var gameEnded = false; // guard against double endGame calls
@@ -705,14 +693,12 @@ var levelUpShownForLevel = -1; // prevents level-up overlay from looping on same
     playersRef        = db.ref('gameNight/players');
     payoutRef         = db.ref('gameNight/payoutSettings');
     specialAwardsRef  = db.ref('gameNight/specialAwards');
-    tonersDrawsRef    = db.ref('gameNight/tonersDraws');
 
     stateRef.on('value',         function(s){ var v=s.val(); if(v){ timerState=v; } renderTimer(); updateTimerControls(); updateLiveBadge(); });
     structRef.on('value',        function(s){ var v=s.val(); blindStructure=(v&&v.length)?v:[]; renderTimer(); calcPayouts(); });
     playersRef.on('value',       function(s){ var v=s.val(); gamePlayers=v||{}; renderPlayers(); calcPayouts(); checkWinner(); });
     payoutRef.on('value',        function(s){ var v=s.val(); if(v){ payoutSettings=v; applyPayoutSettingsToForm(); calcPayouts(); } });
     specialAwardsRef.on('value', function(s){ var v=s.val(); if(v) specialAwards=v; renderSpecialAwards(); });
-    tonersDrawsRef.on('value',   function(s){ var v=s.val(); tonersDraws=v||{}; renderSpecialAwards(); });
   }
 
   // If Tod, show PIN modal (Firebase db now set up so we can read stored PIN)
@@ -1214,14 +1200,6 @@ function endGame(winnerName){
   });
   results.sort(function(a,b){ return a.place - b.place; });
 
-  // Auto-detect Toner's Game winner from draw log
-  var tonersWinner = findTonersWinner(winnerName);
-  if(tonersWinner && !specialAwards.tonersGame.player){
-    specialAwards.tonersGame.player = tonersWinner;
-    specialAwards.tonersGame.note   = tonersWinner + ' drew ' + winnerName;
-    if(specialAwardsRef) try{ specialAwardsRef.set(specialAwards); }catch(e){}
-  }
-
   // Write to Firebase
   if(db){
     var dateKey = getDateKey();
@@ -1233,8 +1211,7 @@ function endGame(winnerName){
         date: dateKey, label: evtLabel,
         playerCount: totalPlayers, winner: winnerName,
         results: results, timestamp: Date.now(),
-        specialAwards: specialAwards,
-        tonersDraws: tonersDraws
+        specialAwards: specialAwards
       });
       // Snapshot last-game stats per player into Firebase standings
       var standUpd = {};
@@ -1299,19 +1276,21 @@ function syncRsvpCount(){
   // Pull from Firebase using the same key format as index.html
   if(!db) return;
   var fbKey = getFbKey(); // e.g. 'rsvp_2026_07_25'
-  // Seats are stored at 'seats_rsvp_2026_07_25', RSVP at 'rsvp_2026_07_25'
-  db.ref('seats_'+fbKey).once('value', function(snap){
-    var seats = snap.val();
-    if(seats && seats.length){
-      var update={};
-      seats.forEach(function(n){ if(!gamePlayers[n]) update[n]={status:'in',place:null}; });
-      if(Object.keys(update).length && playersRef) playersRef.update(update);
-      showToast('Synced '+seats.length+' players from seat draw');
-      return;
-    }
-    // Fallback: read RSVP statuses ('in' entries)
-    db.ref(fbKey).once('value', function(s2){
-      var rv=s2.val()||{};
+  // Always fetch RSVP statuses first so we can filter "out" players from seat draw too
+  db.ref(fbKey).once('value', function(rsvpSnap){
+    var rv = rsvpSnap.val() || {};
+    db.ref('seats_'+fbKey).once('value', function(snap){
+      var seats = snap.val();
+      if(seats && seats.length){
+        // Exclude anyone marked "out" in RSVP — prevents phantom-player / wrong-place bug
+        var validSeats = seats.filter(function(n){ return rv[n] !== 'out'; });
+        var update={};
+        validSeats.forEach(function(n){ if(!gamePlayers[n]) update[n]={status:'in',place:null}; });
+        if(Object.keys(update).length && playersRef) playersRef.update(update);
+        showToast('Synced '+validSeats.length+' players from seat draw');
+        return;
+      }
+      // Fallback: read RSVP statuses ('in' entries only)
       var update={};
       Object.keys(rv).forEach(function(n){ if(rv[n]==='in'&&!gamePlayers[n]) update[n]={status:'in',place:null}; });
       if(Object.keys(update).length && playersRef){ playersRef.update(update); showToast('Synced from RSVPs'); }
@@ -1375,15 +1354,6 @@ function showWinner(name, results, paidPlaces){
   // Winner announcement
   var wLine = pickLine(COMMENTARY.winner, {P:name});
   setTimeout(function(){ speak(wLine[0], wLine[1]); }, 800);
-
-  // Toner's Game announcement — fires ~8 seconds later so it doesn't overlap
-  var tg = (specialAwards && specialAwards.tonersGame) ? specialAwards.tonersGame : {};
-  if(tg.player){
-    setTimeout(function(){
-      var tLine = pickLine(COMMENTARY.tonersGame, {TONER: tg.player, WINNER: name});
-      speak(tLine[0], tLine[1]);
-    }, 8000);
-  }
 }
 
 function closeWinner(){
@@ -1427,8 +1397,6 @@ function applyPayoutSettingsToForm(){
 // Rebuild the editable payout-amount rows.
 // useRec=true → always refill from calcDynPayouts recommendations
 // useRec=false → use payoutSettings.amounts if saved, else recommendations
-var TONERS_AMT = 50; // Toner's Game prize — fixed $50 from the pot
-
 function recalcPayoutRows(useRec){
   var buyIn=_autoPayBuyIn(), players=_autoPayPlayers();
   var rebuys=Number((document.getElementById('pRebuys')||{value:0}).value)||payoutSettings.rebuys||0;
@@ -1445,9 +1413,7 @@ function recalcPayoutRows(useRec){
   var pool=_payoutPool(pot);
   var piPot=document.getElementById('payInfoPot'); if(piPot) piPot.textContent=fmtMoney(pot);
 
-  // Deduct Toner's $50 from pool before calculating place recommendations
-  var prizePool = Math.max(0, pool - TONERS_AMT);
-  var rec=calcDynPayouts(prizePool,paidPlaces,buyIn);
+  var rec=calcDynPayouts(pool,paidPlaces,buyIn);
   var saved=(!useRec&&payoutSettings.amounts&&payoutSettings.amounts.length===paidPlaces)
     ? payoutSettings.amounts : null;
   var vals=saved||rec;
@@ -1470,14 +1436,6 @@ function recalcPayoutRows(useRec){
     if(!saved) html+='<span style="font-size:0.72rem;color:var(--dim);margin-left:0.2rem">rec</span>';
     html+='</div>';
   }
-  // Fixed Toner's Game line — always $50 from the pot
-  html+='<div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.3rem;padding-top:0.4rem;border-top:1px solid var(--border)">';
-  html+='<span style="width:1.6rem;text-align:center;font-size:1rem">🎩</span>';
-  html+='<span style="min-width:5.5rem;color:var(--dim);font-size:0.82rem">Toner\'s Game</span>';
-  html+='<span style="color:var(--dim);font-size:0.9rem">$</span>';
-  html+='<span style="width:90px;padding:0.28rem 0.5rem;font-size:0.95rem;color:var(--gold);font-weight:600;text-align:right">50</span>';
-  html+='<span style="font-size:0.72rem;color:var(--dim);margin-left:0.2rem">fixed</span>';
-  html+='</div>';
   html+='</div>';
   container.innerHTML=html;
   updatePayoutBalance();
@@ -1491,7 +1449,7 @@ function updatePayoutBalance(){
   var kp=_kittyPct();
   var kittyAmt=pot-pool;
   var inputs=document.querySelectorAll('#payoutAmtRows input');
-  var paid=TONERS_AMT; inputs.forEach(function(inp){ paid+=Number(inp.value)||0; }); // includes fixed $50 Toner's Game
+  var paid=0; inputs.forEach(function(inp){ paid+=Number(inp.value)||0; });
   var diff=pool-paid;
   var diffEl=document.getElementById('balDiff');
   if(diffEl){
@@ -1534,8 +1492,7 @@ function savePayoutSettings(){
 function saveSpecialAwards(){
   if(!isAdmin||!db) return;
   var hh={ player:((document.getElementById('hhPlayer')||{}).value||'').trim(), hand:((document.getElementById('hhHand')||{}).value||'').trim() };
-  var tg={ player:((document.getElementById('tgPlayer')||{}).value||'').trim(), note:((document.getElementById('tgNote')||{}).value||'').trim() };
-  specialAwards = { highHand:hh, tonersGame:tg };
+  specialAwards = { highHand:hh };
   if(specialAwardsRef) try{ specialAwardsRef.set(specialAwards); }catch(e){}
   renderSpecialAwards();
   showToast('✅ Awards saved');
@@ -1546,46 +1503,21 @@ function renderSpecialAwards(){
   var ct=document.getElementById('specialAwardsContent');
   if(!el||!ct) return;
   var hh=(specialAwards.highHand)||{};
-  var tg=(specialAwards.tonersGame)||{};
-  var drawCount=Object.keys(tonersDraws).length;
-  if(!hh.player&&!tg.player&&!drawCount){ el.style.display='none'; return; }
+  if(!hh.player){ el.style.display='none'; return; }
   el.style.display='';
   var html='';
   if(hh.player){
-    html+='<div style="display:flex;align-items:center;gap:0.7rem;padding:0.65rem 0;border-bottom:1px solid var(--border)">';
+    html+='<div style="display:flex;align-items:center;gap:0.7rem;padding:0.65rem 0">';
     html+='<span style="font-size:1.4rem">🃏</span><div>';
     html+='<div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.1rem">High Hand</div>';
     html+='<div style="font-weight:700;color:var(--gold);font-size:1rem">'+hh.player+'</div>';
     if(hh.hand) html+='<div style="font-size:0.82rem;color:var(--dim);margin-top:0.1rem">'+hh.hand+'</div>';
     html+='</div></div>';
   }
-  if(tg.player){
-    html+='<div style="display:flex;align-items:center;gap:0.7rem;padding:0.65rem 0;border-bottom:1px solid var(--border)">';
-    html+='<span style="font-size:1.4rem">🎩</span><div>';
-    html+='<div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.1rem">Toner\'s Game Winner</div>';
-    html+='<div style="font-weight:700;color:var(--gold);font-size:1rem">'+tg.player+' 🎉 $50</div>';
-    if(tg.note) html+='<div style="font-size:0.82rem;color:var(--dim);margin-top:0.1rem">'+tg.note+'</div>';
-    html+='</div></div>';
-  }
-  // Live draw log — shows as players bust
-  if(drawCount){
-    html+='<div style="padding:0.65rem 0">';
-    html+='<div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem">🎩 Toner\'s Draws ('+drawCount+' logged)</div>';
-    Object.keys(tonersDraws).sort().forEach(function(p){
-      var drew=tonersDraws[p];
-      html+='<div style="font-size:0.8rem;color:var(--text);padding:0.2rem 0">';
-      html+='<span style="color:var(--dim)">'+p+'</span> drew <strong style="color:var(--gold)">'+drew+'</strong>';
-      html+='</div>';
-    });
-    html+='</div>';
-  }
   ct.innerHTML=html;
-  // Pre-fill admin inputs if in admin mode
   if(isAdmin){
     var hhP=document.getElementById('hhPlayer'); if(hhP&&hh.player&&!hhP.value) hhP.value=hh.player;
     var hhH=document.getElementById('hhHand');   if(hhH&&hh.hand&&!hhH.value)   hhH.value=hh.hand;
-    var tgP=document.getElementById('tgPlayer'); if(tgP&&tg.player&&!tgP.value) tgP.value=tg.player;
-    var tgN=document.getElementById('tgNote');   if(tgN&&tg.note&&!tgN.value)   tgN.value=tg.note;
   }
 }
 
@@ -1845,27 +1777,6 @@ function showToast(msg, dur){
 setTimeout(function(){
   if(timerState.running && commentaryEnabled) maybeFireMidLevelCommentary();
 }, 90000);
-// ═══════════════════════════════════════════════════════════
-//  TONER'S GAME — draw tracking
-// ═══════════════════════════════════════════════════════════
-
-// Save a player's draw to Firebase
-function saveTonersDraw(playerName, drawnName){
-  if(!playerName || !drawnName) return;
-  var upd = {};
-  upd[playerName] = drawnName;
-  tonersDraws[playerName] = drawnName;
-  if(tonersDrawsRef) try{ tonersDrawsRef.update(upd); }catch(e){}
-}
-
-// Check if a winner's name has been drawn by anyone → return drawer's name or null
-function findTonersWinner(winnerName){
-  var keys = Object.keys(tonersDraws);
-  for(var i=0;i<keys.length;i++){
-    if(tonersDraws[keys[i]] === winnerName) return keys[i];
-  }
-  return null;
-}
 
 
 </script>
