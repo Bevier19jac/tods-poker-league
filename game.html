@@ -309,7 +309,8 @@ body.tv .tv-footer{display:block}
       <button class="btn btn-outline" onclick="openTVMode()">📺 TV Display</button>
       <button class="btn btn-outline" onclick="toggleCommentary()">🎤 <span id="commentaryLabel">Commentary ON</span></button>
       <button class="btn btn-outline" onclick="syncRsvpCount()">↻ Sync Players</button>
-      <button class="btn btn-danger btn-xs" onclick="resetTimer()">↺ Reset</button>
+      <button class="btn btn-danger btn-xs" onclick="clearPlayers()">🗑 Clear Players</button>
+      <button class="btn btn-danger btn-xs" onclick="resetTimer()">↺ Reset Timer</button>
     </div>
   </div>
 </div>
@@ -988,6 +989,21 @@ function resetTimer(){
   dismissLevelUp();
   pushState({ running:false, currentLevel:0, levelStartTime:null, totalPausedMs:0, pausedAt:null });
   showToast('↺ Reset to Level 1');
+}
+function clearPlayers(){
+  if(!isAdmin||!db) return;
+  if(!confirm('Clear all players from this game? Use this after a game ends to reset for next time.')) return;
+  gameEnded = false;
+  gamePlayers = {};
+  try{
+    db.ref('gameNight/players').remove();
+    var fbKey = getFbKey();
+    db.ref('seats_'+fbKey).remove();
+  }catch(e){ console.warn('clearPlayers error:',e); }
+  renderPlayers();
+  calcPayouts();
+  document.getElementById('winnerOverlay').classList.remove('show');
+  showToast('✅ Players cleared');
 }
 
 // TV mode
