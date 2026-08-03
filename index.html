@@ -562,7 +562,7 @@ function playerChip(p,i,size){
   else dayLabel=dy[gameDate.getDay()]+', '+mo[gameDate.getMonth()]+' '+gameDate.getDate();
 
   var el=document.getElementById('nextGameLine');
-  if(el)el.textContent=nextLabel+' · '+dayLabel+' at '+ng.time;
+  if(el)el.textContent=nextLabel+' · '+dayLabel+(ng.time?' at '+ng.time:'');
 
   // Update countdown label
   var cdLabel=document.querySelector('.cd-label');
@@ -577,9 +577,10 @@ function playerChip(p,i,size){
   if(rsvpTitle)rsvpTitle.textContent='♣ Who\'s Playing — '+nextLabel;
   var rsvpSub=document.getElementById('rsvpSub');
   if(rsvpSub){
-    var fullDate=dy[gameDate.getDay()]+', '+mo[gameDate.getMonth()]+' '+gameDate.getDate()+' at '+ng.time;
-    if(diffDays===0)fullDate='Tonight at '+ng.time+' — RSVP now!';
-    else if(diffDays===1)fullDate='Tomorrow at '+ng.time;
+    var timeStr=ng.time?' at '+ng.time:'';
+    var fullDate=dy[gameDate.getDay()]+', '+mo[gameDate.getMonth()]+' '+gameDate.getDate()+timeStr;
+    if(diffDays===0)fullDate='Tonight'+(ng.time?' at '+ng.time:'')+' — RSVP now!';
+    else if(diffDays===1)fullDate='Tomorrow'+(ng.time?' at '+ng.time:'');
     rsvpSub.textContent=fullDate+' · Select your name and set your status';
   }
   var donutTitle=document.getElementById('donutTitle');
