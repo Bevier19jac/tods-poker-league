@@ -23,9 +23,22 @@ try {
   window._firebaseReady = false;
 }
 
-// Auth is optional — keep it separate so a failure here doesn't break RSVP/chat
+// Sign in anonymously so Firebase Database rules that require auth != null are satisfied.
+// Firebase SDK automatically retries existing listeners once auth resolves.
 try {
   window._firebaseAuth = firebase.auth ? firebase.auth() : null;
+  if (window._firebaseAuth) {
+    window._firebaseAuth.signInAnonymously().then(function() {
+      // Once authenticated, kick off listeners if they haven't started yet
+      if (typeof startFirebaseListeners === 'function' && !window._fbListenersStarted) {
+        window._fbListenersStarted = true;
+        startFirebaseListeners();
+      }
+    }).catch(function(e) {
+      console.warn('Firebase anon auth failed:', e.message);
+    });
+  }
 } catch(e) {
   window._firebaseAuth = null;
+  console.warn('Firebase auth setup error:', e.message);
 }

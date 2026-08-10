@@ -18,6 +18,7 @@
   <script src="player-videos.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
   <style>
     :root{
@@ -762,7 +763,13 @@ function startFirebaseListeners(){
   // NOTE: Game night live player tracking lives in game.html only.
   // startGameNightListeners() intentionally removed from home page.
 }
-startFirebaseListeners();
+// Start listeners immediately (works if rules allow public access).
+// firebase-config.js will also call this after anonymous auth resolves,
+// which handles the case where rules require auth != null.
+if (!window._fbListenersStarted) {
+  window._fbListenersStarted = true;
+  startFirebaseListeners();
+}
 function setStatus(status){
   if(!myName)return;
   // Toggle off if clicking the already-active status (undo)
