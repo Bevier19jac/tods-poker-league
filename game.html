@@ -310,6 +310,7 @@ body.tv .tv-footer{display:block}
       <button class="btn btn-outline" onclick="openTVMode()">📺 TV Display</button>
       <button class="btn btn-outline" onclick="toggleCommentary()">🎤 <span id="commentaryLabel">Commentary ON</span></button>
       <button class="btn btn-outline" onclick="syncRsvpCount()">↻ Sync Players</button>
+      <button class="btn btn-outline" onclick="adminRedrawSeats()">🔀 Redraw Seats</button>
       <button class="btn btn-danger btn-xs" onclick="clearPlayers()">🗑 Clear Players</button>
       <button class="btn btn-danger btn-xs" onclick="resetTimer()">↺ Reset Timer</button>
     </div>
@@ -1283,10 +1284,32 @@ function bustPlayer(name, place){
   gamePlayers[name] = update[name];
   renderPlayers();
   calcPayouts();
+  // Auto-sync RSVP so seat redraw excludes eliminated players
+  if(db && place !== 1){
+    try{ var rsvpPatch={}; rsvpPatch[name]='out'; db.ref(getFbKey()).update(rsvpPatch); }catch(e){}
+  }
   var koLine = pickLine(COMMENTARY.knockout, {P:name, PLACE:ordinal(place)});
   setTimeout(function(){ speak(koLine[0], koLine[1]); }, 500);
   checkWinner();
   showToast(name + ' busted in ' + ordinal(place) + ' place');
+}
+
+// Admin: redraw seats using only players still 'in' — for table consolidation
+function adminRedrawSeats(){
+  if(!isAdmin){ showToast('Admin only'); return; }
+  var inPlayers = Object.keys(gamePlayers).filter(function(n){ return gamePlayers[n].status === 'in'; });
+  if(inPlayers.length < 2){ showToast('Need at least 2 players still in'); return; }
+  if(!confirm('Redraw seats for ' + inPlayers.length + ' remaining players?')) return;
+  // Fisher-Yates shuffle
+  for(var i=inPlayers.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=inPlayers[i];inPlayers[i]=inPlayers[j];inPlayers[j]=t;}
+  var tables = inPlayers.length <= 10 ? 1 : Math.ceil(inPlayers.length / 9);
+  if(!db){ showToast('No Firebase connection'); return; }
+  try{
+    var fbKey = getFbKey();
+    db.ref('seats_'+fbKey).set(inPlayers);
+    db.ref('tableCount_'+fbKey).set(tables);
+    showToast('Seats redrawn — ' + inPlayers.length + ' players, ' + tables + ' table' + (tables > 1 ? 's' : ''));
+  }catch(e){ showToast('Redraw failed: ' + e.message); }
 }
 
 function syncRsvpCount(){
