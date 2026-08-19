@@ -31,7 +31,15 @@ const LEAGUE = {
     { date: "2026-08-11", label: "Event 13",              type: "regular",    completed: true  },
     { date: "2026-08-25", label: "Event 14",              type: "regular",    completed: false },
     { date: "2026-09-08", label: "Event 15",              type: "regular",    completed: false },
-    { date: "2026-09-22", label: "Season Final",          type: "final",      completed: false },
+    { date: "2026-09-22", label: "Event 16",              type: "regular",    completed: false },
+    { date: "2026-10-06", label: "Event 17",              type: "regular",    completed: false },
+    { date: "2026-10-27", label: "Event 18",              type: "regular",    completed: false },
+    { date: "2026-11-10", label: "Event 19",              type: "regular",    completed: false },
+    { date: "2026-11-19", label: "Event 20",              type: "regular",    completed: false },
+    { date: "2026-12-01", label: "Event 21",              type: "regular",    completed: false },
+    { date: "2026-12-15", label: "Event 22",              type: "regular",    completed: false },
+    { date: "2026-12-29", label: "Event 23",              type: "regular",    completed: false },
+    { date: "2027-02-07", label: "Season Final",          type: "final",      completed: false },
   ],
 
   lastGame: {
