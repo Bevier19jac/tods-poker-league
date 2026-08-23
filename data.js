@@ -148,7 +148,7 @@ const LEAGUE = {
   nextGame: {
     date:      "2026-08-25",
     label:     "Event 14",
-    time:      "8:00 PM",
+    time:      "8:30 PM",
     location:  "Tod's",
     buyin:     40,
     earlyBonus: 500,
