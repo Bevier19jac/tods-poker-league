@@ -654,7 +654,7 @@ function calcDynPayouts(pot, paidPlaces, buyIn) {
 //  STATE
 // ═══════════════════════════════════════════════════════════
 var myName = (function(){ try{return localStorage.getItem('tpl_myname')||'';}catch(e){return '';} })();
-var isAdmin = false; // granted only after PIN verification
+var isAdmin = (function(){ try{ return sessionStorage.getItem('tpl_admin')==='1'; }catch(e){ return false; } })(); // persists for this browser session
 var isTV    = (new URLSearchParams(location.search).get('tv') === '1');
 var adminPinStored = null; // null = no PIN set yet (first-time setup mode)
 var pinEntry = '';
@@ -695,8 +695,11 @@ var levelUpShownForLevel = -1; // prevents level-up overlay from looping on same
     specialAwardsRef.on('value', function(s){ var v=s.val(); if(v) specialAwards=v; renderSpecialAwards(); });
   }
 
-  // If Tod, show PIN modal (Firebase db now set up so we can read stored PIN)
-  if(myName === 'Tod'){ showPinModal(); }
+  // If Tod, activate admin (skip PIN if already verified this session)
+  if(myName === 'Tod'){
+    if(isAdmin){ activateAdmin(); } // already verified — restore admin UI without re-prompting
+    else { showPinModal(); }
+  }
 
   // Commentary every 4 min during play
   commentaryInt = setInterval(maybeFireMidLevelCommentary, 4 * 60 * 1000);
@@ -714,6 +717,7 @@ var levelUpShownForLevel = -1; // prevents level-up overlay from looping on same
 // ═══════════════════════════════════════════════════════════
 function activateAdmin(){
   isAdmin = true;
+  try{ sessionStorage.setItem('tpl_admin','1'); }catch(e){}
   document.getElementById('adminBar').classList.add('visible');
   document.getElementById('badgeTod').style.display='';
   document.getElementById('noStructBtn').style.display='';

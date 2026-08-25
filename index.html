@@ -1019,7 +1019,7 @@ function renderSeats(seats){
 }
 
 // ── SEAT DRAW PIN ──
-var seatDrawUnlocked = false; // unlocked for this session after correct PIN
+var seatDrawUnlocked = (function(){ try{ return sessionStorage.getItem('tpl_seat_unlocked')==='1'; }catch(e){ return false; } })(); // persists for this browser session
 var _seatPinEntry = '';
 var _seatPinStored = null;
 var _seatPinReady = false;
@@ -1097,6 +1097,7 @@ function submitSeatPin(){
   }
   if(_seatPinEntry===_seatPinStored){
     seatDrawUnlocked=true;
+    try{ sessionStorage.setItem('tpl_seat_unlocked','1'); }catch(e){}
     dismissSeatPinModal();
     // Now do the actual draw
     var ins=Object.keys(fbStatuses).filter(function(k){return fbStatuses[k]==='in';});
