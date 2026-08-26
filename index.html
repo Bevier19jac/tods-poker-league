@@ -619,11 +619,13 @@ function playerChip(p,i,size){
 })();
 
 // ── COUNTDOWN ──
-function pld(str,h){var p=str.split('-').map(Number);return new Date(p[0],p[1]-1,p[2],h||0,0,0);}
+function pld(str,h,m){var p=str.split('-').map(Number);return new Date(p[0],p[1]-1,p[2],h||0,m||0,0);}
 function pad(n){return n<10?'0'+n:String(n);}
 var _gameHour=parseGameHour(ng.time);
+function parseGameMin(t){var m2=(t||'').match(/\d+:(\d+)\s*(am|pm)/i);return m2?parseInt(m2[1]):0;}
+var _gameMin=parseGameMin(ng.time);
 function tick(){
-  var diff=pld(ng.date,_gameHour)-new Date();
+  var diff=pld(ng.date,_gameHour,_gameMin)-new Date();
   if(diff<=0){['cd-d','cd-h','cd-m','cd-s'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='00';});return;}
   var e=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
   e('cd-d',pad(Math.floor(diff/86400000)));
