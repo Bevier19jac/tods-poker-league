@@ -116,10 +116,11 @@ const LEAGUE = {
     highHandSeason:     { player: "Tod Ellison", hand: "Quad Aces - 7 Kicker", season: 20, date: "2026-08-25" },
     mostWins:           { player: "Tod Ellison", count: 15, note: "Career event wins all-time" },
     mostSeasons:        { player: "Tod Ellison", count: 20, note: "All 20 seasons" },
-    mostChampionships:  { player: "JH Hooper & Tod Ellison", count: 2, note: "2x Ardenlee Champions each" },
+    mostChampionships:  { player: "Steve Mills, JH Hooper & Tod Ellison", count: 2, note: "2x Ardenlee Champions each" },
   },
 
   champions: [
+    { season: 20, year: 2026, champion: "",               note: "Season in progress" },
     { season: 19, year: 2025, champion: "Charlie Grant", note: "First season, first championship" },
     { season: 18, year: 2024, champion: "Eric C",        note: "" },
     { season: 17, year: 2023, champion: "Tod",           note: "" },
@@ -137,8 +138,8 @@ const LEAGUE = {
     { season:  5, year: 2011, champion: "Al",            note: "" },
     { season:  4, year: 2010, champion: "Derek",         note: "" },
     { season:  3, year: 2009, champion: "Sal",           note: "" },
-    { season:  2, year: 2008, champion: "",              note: "" },
-    { season:  1, year: 2007, champion: "",              note: "" },
+    { season:  2, year: 2008, champion: "Steve",          note: "Back-to-back champion" },
+    { season:  1, year: 2007, champion: "Steve",          note: "Inaugural season champion" },
   ],
 
   nextGame: {
