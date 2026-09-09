@@ -1,6 +1,6 @@
 # Ardenlee Poker League — Claude Briefing
 
-*Last updated: after Event 14 (2026-08-25)*
+*Last updated: after Event 15 (2026-09-08)*
 
 ## Project
 Website for a private poker league.
@@ -20,11 +20,11 @@ push.bat stages all HTML/JS/data files, commits, and pushes to GitHub Pages. Sit
 - `firebase-config.js` — Firebase config (DO NOT print or expose API keys)
 - `push.bat` — deploy script (double-click to push)
 
-## Current State (as of 2026-08-25)
-- **Last event:** Event 14, Aug 25 — Charlie Grant wins, 19 players, heads-up vs Guy
-- **Next event:** Event 15, September 8, 8:00 PM at Tod's
-- **Season:** 20, 15 events complete (includes Mid-Season Tournament July 25)
-- **Standings leader:** Tod Ellison 60,800 pts | Guy Caldwell 56,000 | Jacob Bevier 52,750
+## Current State (as of 2026-09-08)
+- **Last event:** Event 15, Sep 8 — Tod Ellison wins, 22 players; Jeremy 2nd, Tim 3rd
+- **Next event:** Event 16, September 22, 8:00 PM at Tod's
+- **Season:** 20, 16 events complete (includes Mid-Season Tournament July 25)
+- **Standings leader:** Tod Ellison 68,200 pts (2 wins) | Guy 56,000 | Chris P 55,100 | Jacob 53,050
 - **High hand (season & all-time):** Tod Ellison — Quad Aces, 7 kicker (Aug 25 2026)
 - **Buy-in:** $40, Rebuy: $40, Start stack: 6000, Early bonus: 500
 
@@ -55,7 +55,7 @@ announcements[]: { active, type, icon, text }
 ## Season 20 Schedule (remaining)
 | Event | Date | Status |
 |-------|------|--------|
-| Event 15 | Sep 8 2026 | upcoming |
+| Event 15 | Sep 8 2026 | ✅ complete (Tod wins) |
 | Event 16 | Sep 22 2026 | upcoming |
 | Event 17 | Oct 6 2026 | upcoming |
 | Event 18 | Oct 27 2026 | upcoming |
