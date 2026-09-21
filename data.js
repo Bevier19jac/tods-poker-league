@@ -92,6 +92,7 @@ const LEAGUE = {
     { name: "Jeremy",  fullName: "Jeremy Bollinger",  events: 12, points: 41500, wins: 2, cashes: 3,  avgPlace: 11.6, avatar: "avatars/jeremy.png"  },
     { name: "Steve",   fullName: "Steve Mills",       events: 11, points: 41200, wins: 1, cashes: 3,  avgPlace: 9.6  },
     { name: "Philo",   fullName: "Philo Mitman",      events: 15, points: 39900, wins: 0, cashes: 1,  avgPlace: 12.7, avatar: "avatars/philo.png"   },
+    { name: "Tom",     fullName: "Tom Kane",          events: 12, points: 38800, wins: 0, cashes: 2,  avgPlace: 11.3, avatar: "avatars/tom.png"     },
     { name: "Steele",  fullName: "Steele Persons",    events: 14, points: 37900, wins: 0, cashes: 1,  avgPlace: 12.1 },
     { name: "Eric",    fullName: "Eric Cunningham",   events: 15, points: 37100, wins: 0, cashes: 1,  avgPlace: 13.1, avatar: "avatars/eric.png"    },
     { name: "Jay",     fullName: "Jay Rose",          events: 12, points: 36700, wins: 1, cashes: 2,  avgPlace: 11.8, avatar: "avatars/jay.png"     },
