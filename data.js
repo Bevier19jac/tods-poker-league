@@ -108,6 +108,7 @@ const LEAGUE = {
     { name: "Eli",      fullName: "Eli Robbins",           events: 1,  points:  3000, wins: 0, cashes: 0, avgPlace: 10.0,},
     { name: "James",    fullName: "James",                 events: 1,  points:  1800, wins: 0, cashes: 0, avgPlace: 18.0,},
     { name: "Jeff",     fullName: "Jeff Mennicke",         events: 1,  points:  1200, wins: 0, cashes: 0, avgPlace: 20.0,},
+    { name: "Tim D",    fullName: "Tim Dunn",              events: 0,  points:     0, wins: 0, cashes: 0, avgPlace: 0.0   },
   ],
 
   records: {
